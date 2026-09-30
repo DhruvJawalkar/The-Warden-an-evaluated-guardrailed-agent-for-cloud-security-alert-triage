@@ -1,0 +1,48 @@
+{"qid":"Q01","intent":"investigate","query":"IAM user alice.chen authenticated to the console from AS49505 (Selectel, RU) without MFA, then assumed analytics-readall. What separates the owner from an intruder here?","gold":["RB-CONSOLE-001#investigation-steps"]}
+{"qid":"Q02","intent":"benign","query":"priya.rao authenticated from Germany, 6,400 km from her last login 9 hours earlier. Could this just be a person travelling or on a VPN?","gold":["RB-CONSOLE-001#benign-explanations"]}
+{"qid":"Q03","intent":"respond","query":"A console sign-in with no MFA was followed by role switching. Do we cut the sessions and does that need sign-off?","gold":["RB-CONSOLE-001#containment"]}
+{"qid":"Q04","intent":"investigate","query":"11 failed console logins for dana.okafor from AS14061, then a successful login without MFA. What should I read across the failures?","gold":["RB-CONSOLE-002#investigation-steps"]}
+{"qid":"Q05","intent":"benign","query":"6 failed console logins for bob.martins, then a successful login. Is that plausibly someone who forgot a password?","gold":["RB-CONSOLE-002#benign-explanations"]}
+{"qid":"Q06","intent":"respond","query":"The login finally succeeded after a long run of failures from a hosting network. What do we do to the account?","gold":["RB-CONSOLE-002#containment"]}
+{"qid":"Q07","intent":"investigate","query":"bob.martins attached AdministratorAccess to dana.okafor and minted a new access key for that user. How do I work out whether it was authorised?","gold":["RB-IAM-001#investigation-steps"]}
+{"qid":"Q08","intent":"benign","query":"A broad admin policy was attached to a Finance user. What innocent stories exist for a change like that?","gold":["RB-IAM-001#benign-explanations"]}
+{"qid":"Q09","intent":"respond","query":"How do I undo an unauthorised admin permission grant, and which of those steps need someone to approve them?","gold":["RB-IAM-001#containment"]}
+{"qid":"Q10","intent":"investigate","query":"A new IAM user svc-metrics-agent was created by admin-breakglass. What do I check about the new identity?","gold":["RB-IAM-002#investigation-steps"]}
+{"qid":"Q11","intent":"record","query":"Which events do I cite to show a suspicious new user was set up so someone keeps access after a key rotation?","gold":["RB-IAM-002#evidence-to-capture"]}
+{"qid":"Q12","intent":"benign","query":"The break-glass account created a service-style user. Is that plausibly ordinary onboarding?","gold":["RB-IAM-002#benign-explanations"]}
+{"qid":"Q13","intent":"investigate","query":"svc-ci-deploy launched 24 p4d.24xlarge instances across ap-south-1 and sa-east-1. What in the launch tells me this is mining?","gold":["RB-EC2-001#investigation-steps"]}
+{"qid":"Q14","intent":"benign","query":"svc-ci-deploy launched 45 instances in us-west-2 within 6 minutes. Is that what a build system does?","gold":["RB-EC2-001#benign-explanations"]}
+{"qid":"Q15","intent":"respond","query":"Should the GPU instances be shut down right away, and what do we lose if we do?","gold":["RB-EC2-001#containment"]}
+{"qid":"Q16","intent":"investigate","query":"marcus.webb removed the public access block and applied a wildcard read policy to acme-customer-exports. What should I read besides the change itself?","gold":["RB-S3-001#investigation-steps"]}
+{"qid":"Q17","intent":"benign","query":"svc-ci-deploy replaced the bucket policy on acme-app-assets. Is that ordinary deployment behaviour?","gold":["RB-S3-001#benign-explanations"]}
+{"qid":"Q18","intent":"respond","query":"How do we roll back a bucket that was exposed, and what do we write down about how long it was open?","gold":["RB-S3-001#containment"]}
+{"qid":"Q19","intent":"investigate","query":"marcus.webb retrieved 9 objects from acme-analytics-lake in 45 minutes. How do I tell a task from a sweep?","gold":["RB-S3-002#investigation-steps"]}
+{"qid":"Q20","intent":"benign","query":"alice.chen retrieved 14 objects (2.1 GB) from acme-analytics-lake in 15 minutes. Could that be routine work?","gold":["RB-S3-002#benign-explanations"]}
+{"qid":"Q21","intent":"respond","query":"Suspected bulk data theft from a bucket. Who has to be told, and what gets restricted?","gold":["RB-S3-002#containment"]}
+{"qid":"Q22","intent":"purpose","query":"alice.chen read one object from acme-customer-exports. Volume was below the alerting threshold. Why does this still matter?","gold":["RB-S3-003#purpose"]}
+{"qid":"Q23","intent":"investigate","query":"Someone reads another team's data slowly, a few objects at a time over several hours. What do I check?","gold":["RB-S3-003#investigation-steps"]}
+{"qid":"Q24","intent":"respond","query":"Who should confirm before I take away someone's access to a store their team does not own?","gold":["RB-S3-003#containment"]}
+{"qid":"Q25","intent":"investigate","query":"admin-breakglass stopped acme-org-trail, deleted the secondary trail and narrowed event selectors to read-only. What do I establish first?","gold":["RB-LOG-001#investigation-steps"]}
+{"qid":"Q26","intent":"respond","query":"Our audit trail is switched off right now. What comes first and how urgent is it?","gold":["RB-LOG-001#containment"]}
+{"qid":"Q27","intent":"benign","query":"Could stopping a trail be planned maintenance rather than an attack?","gold":["RB-LOG-001#benign-explanations"]}
+{"qid":"Q28","intent":"investigate","query":"svc-lambda-invoice listed and read 7 production secrets in under 10 minutes. What decides whether that is normal?","gold":["RB-SEC-001#investigation-steps"]}
+{"qid":"Q29","intent":"benign","query":"svc-secrets-rotator read 4 production secrets in sequence at 06:14 UTC. Is that legitimate?","gold":["RB-SEC-001#benign-explanations"]}
+{"qid":"Q30","intent":"respond","query":"Once a suspicious role has read our secrets, what has to happen to the secrets themselves?","gold":["RB-SEC-001#containment"]}
+{"qid":"Q31","intent":"investigate","query":"marcus.webb shared snapshot snap-07d1e9a2 with AWS account 609284471033, outside the organisation. How do I check the destination?","gold":["RB-EBS-001#investigation-steps"]}
+{"qid":"Q32","intent":"benign","query":"svc-backup created 9 EBS snapshots in 18 minutes at 03:12 UTC. Should I worry?","gold":["RB-EBS-001#benign-explanations"]}
+{"qid":"Q33","intent":"respond","query":"A disk copy has already been shared with an outside account. How do we deal with it?","gold":["RB-EBS-001#containment"]}
+{"qid":"Q34","intent":"purpose","query":"ci-deploy was assumed from AS200651 rather than AWS infrastructure, then read Terraform state and a production secret. What is the likely explanation?","gold":["RB-STS-001#purpose","RB-STS-001#investigation-steps"]}
+{"qid":"Q35","intent":"benign","query":"Can an automation role ever legitimately be used from an address outside the cloud provider?","gold":["RB-STS-001#benign-explanations"]}
+{"qid":"Q36","intent":"respond","query":"A deploy role was used from an unexpected network. What do I revoke or tighten?","gold":["RB-STS-001#containment"]}
+{"qid":"Q37","intent":"investigate","query":"svc-lambda-invoice read a secret outside its documented permissions, and its role was swapped 29 minutes earlier by svc-ci-deploy. Where do I look for the cause?","gold":["RB-CICD-001#investigation-steps"]}
+{"qid":"Q38","intent":"record","query":"The alerting Lambda looks innocent but something changed it upstream. Which pair of events shows cause?","gold":["RB-CICD-001#evidence-to-capture"]}
+{"qid":"Q39","intent":"respond","query":"We suspect the deploy pipeline was abused. Beyond rolling the function back, what else needs doing?","gold":["RB-CICD-001#containment"]}
+{"qid":"Q40","intent":"method","query":"How do I decide whether some activity is anomalous for this particular identity?","gold":["RB-GEN-001#purpose","RB-GEN-001#investigation-steps"]}
+{"qid":"Q41","intent":"benign","query":"Is 'nothing looks unusual' enough to close an alert as a false positive?","gold":["RB-GEN-001#benign-explanations","RB-GEN-002#benign-explanations"]}
+{"qid":"Q42","intent":"method","query":"What has to be attached to a verdict before I submit it?","gold":["RB-GEN-002#purpose","RB-GEN-002#investigation-steps"]}
+{"qid":"Q43","intent":"method","query":"I ran out of budget before I finished. Should I just guess a verdict?","gold":["RB-GEN-002#escalation"]}
+{"qid":"Q44","intent":"respond","query":"Who has to approve response actions and in what order should I reach for them?","gold":["RB-GEN-003#containment"]}
+{"qid":"Q45","intent":"benign","query":"Should I lock down a service role as a precaution when the evidence says it is routine?","gold":["RB-GEN-003#benign-explanations"]}
+{"qid":"Q46","intent":"record","query":"What do I write down once a response action has been carried out?","gold":["RB-GEN-003#evidence-to-capture"]}
+{"qid":"Q47","intent":"respond","query":"What belongs in an escalation to the on-call analyst?","gold":["RB-GEN-001#escalation"]}
+{"qid":"Q48","intent":"respond","query":"Which response action is time-critical enough to be pushed through quickly?","gold":["RB-GEN-003#containment","RB-LOG-001#containment"]}

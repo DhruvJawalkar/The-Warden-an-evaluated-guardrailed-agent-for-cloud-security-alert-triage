@@ -604,6 +604,10 @@ def main() -> None:
     ap.add_argument("--max-steps", type=int, default=int(os.environ.get("WARDEN_MAX_STEPS", 25)))
     ap.add_argument("--max-usd", type=float, default=float(os.environ.get("WARDEN_MAX_USD", 0.50)))
     ap.add_argument("--prompt", choices=PROMPT_VERSIONS, default="v2")
+    ap.add_argument("--tools", choices=("inproc", "mcp"), default="mcp",
+                    help="tool plane: FastMCP servers over stdio (week 2) or the in-process oracle")
+    ap.add_argument("--toolset", choices=("w1", "full"), default="w1",
+                    help="tools offered to the model. w1 = the week-1 surface; full adds week-2 tools")
     ap.add_argument("--run-dir", default="runs")
     ap.add_argument("--dry-run", action="store_true", help="ScriptedClient, no API calls")
     ap.add_argument("--check", action="store_true", help="report unimplemented stubs")
@@ -622,25 +626,32 @@ def main() -> None:
 
     alert = store.alert(args.incident)
     run_state: dict = {}
-    registry = build_registry(store, args.incident, run_state)
-    transcript = Transcript(build_system_prompt(alert, registry.names(), args.prompt))
-    transcript.add_user("Triage alert %s. Investigate, then submit your verdict."
-                        % alert["alert_id"])
-
-    client = ScriptedClient([]) if args.dry_run else AnthropicClient(args.model)
-    run = RunRecord.new(args.incident, args.model if not args.dry_run else "scripted")
-    run.prompt_version = args.prompt
-    loop = AgentLoop(client, registry, transcript, Budget(max_steps=args.max_steps, max_usd=args.max_usd),
-                     run, run_state)
-
+    from warden.toolplane.client import open_registry  # lazy: inproc runs need no fastmcp
+    registry = open_registry(args.tools, store, args.incident, run_state, dataset=args.dataset,
+                             toolset=args.toolset)
     try:
-        loop.run_until_done()
-    except NotImplementedStub as exc:
-        print("Not implemented yet: %s\nRun --check to see what is left." % exc, file=sys.stderr)
-        sys.exit(2)
+        transcript = Transcript(build_system_prompt(alert, registry.names(), args.prompt))
+        transcript.add_user("Triage alert %s. Investigate, then submit your verdict."
+                            % alert["alert_id"])
+
+        client = ScriptedClient([]) if args.dry_run else AnthropicClient(args.model)
+        run = RunRecord.new(args.incident, args.model if not args.dry_run else "scripted")
+        run.prompt_version = args.prompt
+        run.tool_plane = args.tools
+        loop = AgentLoop(client, registry, transcript,
+                         Budget(max_steps=args.max_steps, max_usd=args.max_usd), run, run_state)
+
+        try:
+            loop.run_until_done()
+        except NotImplementedStub as exc:
+            print("Not implemented yet: %s\nRun --check to see what is left." % exc, file=sys.stderr)
+            sys.exit(2)
+        finally:
+            if run.steps or run.stop_cause:
+                print("run saved: %s" % run.save(args.run_dir), file=sys.stderr)
     finally:
-        if run.steps or run.stop_cause:
-            print("run saved: %s" % run.save(args.run_dir), file=sys.stderr)
+        if hasattr(registry, "close"):
+            registry.close()
 
     print(json.dumps({"stop_cause": run.stop_cause, "steps": len(run.steps),
                       "cost_usd": round(run.total_cost_usd, 4),

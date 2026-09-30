@@ -6,10 +6,13 @@ requires-python = ">=3.10"
 dependencies = [
     "anthropic==1.9.0",
     "python-dotenv>=1.0",
+    "fastmcp==4.0.10",  # pulls mcp==2.2.0 (implements 2026-07-28). Frozen 2026-09-30.
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]
+# Runbook-RAG only. Kept out of the core install so the loop and its tests never need torch.
+rag = ["rank-bm25==0.2.2", "sentence-transformers==6.1.0"]
 
 [build-system]
 requires = ["setuptools>=68"]

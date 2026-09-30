@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "log-search":    { "command": "python", "args": ["-m", "warden.toolplane.log_search"] },
+    "asset-graph":   { "command": "python", "args": ["-m", "warden.toolplane.asset_graph"] },
+    "threat-intel":  { "command": "python", "args": ["-m", "warden.toolplane.threat_intel"] },
+    "runbook-rag":   { "command": "python", "args": ["-m", "warden.toolplane.runbook_rag"] },
+    "ticket-writer": { "command": "python", "args": ["-m", "warden.toolplane.ticket_writer"] }
+  }
+}

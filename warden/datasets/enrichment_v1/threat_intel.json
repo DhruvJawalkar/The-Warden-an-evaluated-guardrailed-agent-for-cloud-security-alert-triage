@@ -1,0 +1,146 @@
+{
+  "entries": {
+    "AS14061": {
+      "abuse_reports_90d": 358,
+      "asn": "AS14061",
+      "categories": [
+        "cloud_hosting",
+        "scanning_source",
+        "brute_force_source"
+      ],
+      "confidence": "medium",
+      "last_reported": "2026-08-14",
+      "name": "DigitalOcean",
+      "network_class": "cloud_hosting",
+      "note": "Popular developer cloud. Many legitimate customers; frequent source of scanning.",
+      "reputation": "mixed"
+    },
+    "AS14618": {
+      "abuse_reports_90d": 181,
+      "asn": "AS14618",
+      "categories": [
+        "cloud_provider",
+        "scanning_source"
+      ],
+      "confidence": "high",
+      "last_reported": "2026-08-17",
+      "name": "Amazon",
+      "network_class": "cloud_provider",
+      "note": "Very large legitimate customer base; also rented by attackers. Origin alone is weak evidence.",
+      "reputation": "neutral"
+    },
+    "AS200651": {
+      "abuse_reports_90d": 184,
+      "asn": "AS200651",
+      "categories": [
+        "hosting",
+        "offshore_hosting"
+      ],
+      "confidence": "medium",
+      "last_reported": "2026-07-28",
+      "name": "Flokinet",
+      "network_class": "hosting",
+      "note": "Offshore hosting with lax abuse handling.",
+      "reputation": "poor"
+    },
+    "AS3320": {
+      "abuse_reports_90d": 10,
+      "asn": "AS3320",
+      "categories": [
+        "residential"
+      ],
+      "confidence": "high",
+      "last_reported": "2026-08-05",
+      "name": "DTAG",
+      "network_class": "residential_isp",
+      "note": "Consumer broadband, DE.",
+      "reputation": "clean"
+    },
+    "AS4134": {
+      "abuse_reports_90d": 266,
+      "asn": "AS4134",
+      "categories": [
+        "carrier",
+        "scanning_source"
+      ],
+      "confidence": "low",
+      "last_reported": "2026-08-26",
+      "name": "Chinanet",
+      "network_class": "national_carrier",
+      "note": "National carrier: huge population of ordinary users and a large abusive tail.",
+      "reputation": "mixed"
+    },
+    "AS49505": {
+      "abuse_reports_90d": 424,
+      "asn": "AS49505",
+      "categories": [
+        "hosting",
+        "brute_force_source",
+        "credential_stuffing"
+      ],
+      "confidence": "medium",
+      "last_reported": "2026-07-25",
+      "name": "Selectel",
+      "network_class": "hosting",
+      "note": "Hosting provider with a long abuse history.",
+      "reputation": "poor"
+    },
+    "AS62240": {
+      "abuse_reports_90d": 94,
+      "asn": "AS62240",
+      "categories": [
+        "hosting"
+      ],
+      "confidence": "low",
+      "last_reported": "2026-08-29",
+      "name": "Clouvider",
+      "network_class": "hosting",
+      "note": "Hosting provider, mixed customer base.",
+      "reputation": "mixed"
+    },
+    "AS701": {
+      "abuse_reports_90d": 16,
+      "asn": "AS701",
+      "categories": [
+        "residential",
+        "mobile"
+      ],
+      "confidence": "high",
+      "last_reported": "2026-08-28",
+      "name": "Verizon",
+      "network_class": "residential_isp",
+      "note": "Consumer and mobile carrier.",
+      "reputation": "clean"
+    },
+    "AS7922": {
+      "abuse_reports_90d": 13,
+      "asn": "AS7922",
+      "categories": [
+        "residential"
+      ],
+      "confidence": "high",
+      "last_reported": "2026-07-30",
+      "name": "Comcast",
+      "network_class": "residential_isp",
+      "note": "Consumer broadband. Low-volume reports are mostly compromised home devices.",
+      "reputation": "clean"
+    },
+    "AS9009": {
+      "abuse_reports_90d": 124,
+      "asn": "AS9009",
+      "categories": [
+        "vpn_exit",
+        "anonymizer"
+      ],
+      "confidence": "low",
+      "last_reported": "2026-08-07",
+      "name": "M247",
+      "network_class": "vpn_infrastructure",
+      "note": "Commercial VPN exit infrastructure: used by privacy-conscious staff and by attackers alike.",
+      "reputation": "mixed"
+    }
+  },
+  "feed": "warden-synthetic-feed",
+  "feed_date": "2026-09-01",
+  "version": "1.0.0"
+}

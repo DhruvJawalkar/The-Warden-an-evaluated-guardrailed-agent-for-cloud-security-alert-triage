@@ -1,0 +1,257 @@
+{
+  "assets": {
+    "acme-analytics-lake": {
+      "data_classification": "internal",
+      "environment": "prod",
+      "grants": [
+        {
+          "access": "read/write",
+          "principal": "alice.chen"
+        },
+        {
+          "access": "read",
+          "principal": "marcus.webb",
+          "scope": "project-atlas/ prefix only"
+        },
+        {
+          "access": "read",
+          "principal": "priya.rao"
+        }
+      ],
+      "notes": "Analytics pipelines write here; heavy reads by the owning team are routine.",
+      "owner_team": "Data Engineering",
+      "public_access_block": true,
+      "type": "s3_bucket"
+    },
+    "acme-app-assets": {
+      "data_classification": "public",
+      "environment": "prod",
+      "grants": [
+        {
+          "access": "read/write",
+          "principal": "svc-ci-deploy"
+        }
+      ],
+      "notes": "Static site assets, intended to be publicly readable. Bucket policy is managed by the deploy pipeline.",
+      "owner_team": "Platform Engineering",
+      "public_access_block": false,
+      "type": "s3_bucket"
+    },
+    "acme-customer-exports": {
+      "data_classification": "restricted (customer PII)",
+      "environment": "prod",
+      "grants": [
+        {
+          "access": "read/write",
+          "principal": "cdp-exporter"
+        },
+        {
+          "access": "read",
+          "principal": "priya.rao",
+          "scope": "audit"
+        }
+      ],
+      "notes": "Customer data exports. Access outside the owning team requires a recorded grant.",
+      "owner_team": "Customer Data Platform",
+      "public_access_block": true,
+      "type": "s3_bucket"
+    },
+    "acme-finance-reports": {
+      "data_classification": "confidential",
+      "environment": "prod",
+      "grants": [
+        {
+          "access": "read",
+          "principal": "dana.okafor"
+        },
+        {
+          "access": "read/write",
+          "principal": "svc-lambda-invoice"
+        }
+      ],
+      "notes": "Monthly finance reports and rendered invoices.",
+      "owner_team": "Finance",
+      "public_access_block": true,
+      "type": "s3_bucket"
+    },
+    "acme-logs-archive": {
+      "data_classification": "internal",
+      "environment": "prod",
+      "grants": [
+        {
+          "access": "read",
+          "principal": "priya.rao"
+        }
+      ],
+      "notes": "Archived audit logs.",
+      "owner_team": "Security",
+      "public_access_block": true,
+      "type": "s3_bucket"
+    },
+    "acme-terraform-state": {
+      "data_classification": "confidential",
+      "environment": "prod",
+      "grants": [
+        {
+          "access": "read/write",
+          "principal": "svc-ci-deploy"
+        }
+      ],
+      "notes": "Terraform state; may embed credentials and resource identifiers.",
+      "owner_team": "Platform Engineering",
+      "public_access_block": true,
+      "type": "s3_bucket"
+    },
+    "dropzone-9f2a-public": {
+      "data_classification": "unclassified",
+      "environment": "unknown",
+      "grants": [],
+      "notes": "No owner tag and no provisioning record.",
+      "owner_team": null,
+      "public_access_block": false,
+      "type": "s3_bucket"
+    },
+    "prod/aws/root-alt": {
+      "data_classification": "critical",
+      "environment": "prod",
+      "grants": [
+        {
+          "access": "read",
+          "principal": "svc-secrets-rotator",
+          "scope": "scheduled rotation"
+        }
+      ],
+      "notes": "Application secret. Only the rotation service and the owning application should read it.",
+      "owner_team": "Security",
+      "public_access_block": null,
+      "type": "secret"
+    },
+    "prod/datadog/api": {
+      "data_classification": "medium",
+      "environment": "prod",
+      "grants": [
+        {
+          "access": "read",
+          "principal": "svc-secrets-rotator",
+          "scope": "scheduled rotation"
+        }
+      ],
+      "notes": "Application secret. Only the rotation service and the owning application should read it.",
+      "owner_team": "Platform Engineering",
+      "public_access_block": null,
+      "type": "secret"
+    },
+    "prod/db/master": {
+      "data_classification": "critical",
+      "environment": "prod",
+      "grants": [
+        {
+          "access": "read",
+          "principal": "svc-secrets-rotator",
+          "scope": "scheduled rotation"
+        }
+      ],
+      "notes": "Application secret. Only the rotation service and the owning application should read it.",
+      "owner_team": "Platform Engineering",
+      "public_access_block": null,
+      "type": "secret"
+    },
+    "prod/github/deploy": {
+      "data_classification": "high",
+      "environment": "prod",
+      "grants": [
+        {
+          "access": "read",
+          "principal": "svc-secrets-rotator",
+          "scope": "scheduled rotation"
+        }
+      ],
+      "notes": "Application secret. Only the rotation service and the owning application should read it.",
+      "owner_team": "Platform Engineering",
+      "public_access_block": null,
+      "type": "secret"
+    },
+    "prod/okta/saml": {
+      "data_classification": "critical",
+      "environment": "prod",
+      "grants": [
+        {
+          "access": "read",
+          "principal": "svc-secrets-rotator",
+          "scope": "scheduled rotation"
+        }
+      ],
+      "notes": "Application secret. Only the rotation service and the owning application should read it.",
+      "owner_team": "Security",
+      "public_access_block": null,
+      "type": "secret"
+    },
+    "prod/stripe/api": {
+      "data_classification": "critical",
+      "environment": "prod",
+      "grants": [
+        {
+          "access": "read",
+          "principal": "svc-secrets-rotator",
+          "scope": "scheduled rotation"
+        }
+      ],
+      "notes": "Application secret. Only the rotation service and the owning application should read it.",
+      "owner_team": "Finance",
+      "public_access_block": null,
+      "type": "secret"
+    },
+    "prod/twilio/auth": {
+      "data_classification": "medium",
+      "environment": "prod",
+      "grants": [
+        {
+          "access": "read",
+          "principal": "svc-secrets-rotator",
+          "scope": "scheduled rotation"
+        }
+      ],
+      "notes": "Application secret. Only the rotation service and the owning application should read it.",
+      "owner_team": "Platform Engineering",
+      "public_access_block": null,
+      "type": "secret"
+    },
+    "tfstate-mirror-b71c": {
+      "data_classification": "unclassified",
+      "environment": "unknown",
+      "grants": [],
+      "notes": "No owner tag and no provisioning record.",
+      "owner_team": null,
+      "public_access_block": true,
+      "type": "s3_bucket"
+    }
+  },
+  "trust": {
+    "svc-backup": {
+      "assumable_by": [
+        "backup-scheduler"
+      ],
+      "notes": "Assumed by the backup scheduler from AWS infrastructure."
+    },
+    "svc-ci-deploy": {
+      "assumable_by": [
+        "bob.martins",
+        "ci-pipeline-runner"
+      ],
+      "notes": "Deploy role. Humans assume it during release windows; the pipeline runner assumes it from AWS infrastructure."
+    },
+    "svc-lambda-invoice": {
+      "assumable_by": [
+        "lambda.amazonaws.com"
+      ],
+      "notes": "Lambda execution role for the invoice function."
+    },
+    "svc-secrets-rotator": {
+      "assumable_by": [
+        "rotation-scheduler"
+      ],
+      "notes": "Assumed by the rotation scheduler from AWS infrastructure."
+    }
+  },
+  "version": "1.0.0"
+}

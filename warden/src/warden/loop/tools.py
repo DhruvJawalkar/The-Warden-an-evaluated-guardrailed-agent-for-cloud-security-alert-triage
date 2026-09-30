@@ -137,49 +137,79 @@ def _slim(ev: dict) -> dict:
     }
 
 
-def build_registry(store: IncidentStore, incident_id: str, run_state: dict) -> ToolRegistry:
-    """Bind the tool plane to one incident. run_state collects the terminal verdict."""
-    fetched: set = set()  # event_ids returned by get_events; the only ones submit_verdict accepts
+# --- shared implementations --------------------------------------------------
+# Called by the in-process registry below AND by the FastMCP servers in
+# warden.toolplane, so the two paths cannot drift. Each takes the store and the
+# incident id explicitly: no closure, no ambient state (the stateless posture).
 
-    def search_logs(limit: int = 25, **filters):
-        allowed = {"principal_name", "event_name", "event_source", "aws_region", "source_ip",
-                   "source_asn", "time_from", "time_to", "errors_only", "writes_only", "contains"}
-        unknown = set(filters) - allowed
-        if unknown:
-            raise ToolError("Unknown filter(s): %s. Allowed: %s"
-                            % (", ".join(sorted(unknown)), ", ".join(sorted(allowed))),
-                            kind="bad_arguments")
-        events = store.events(incident_id)
-        hits = [e for e in events if _matches(e, **filters)]
-        limit = max(1, min(int(limit), 100))
-        return {
-            "total_matched": len(hits),
-            "returned": min(len(hits), limit),
-            "truncated": len(hits) > limit,
-            "corpus_size": len(events),
-            "events": [_slim(e) for e in hits[:limit]],
-        }
+SEARCH_FILTERS = ("principal_name", "event_name", "event_source", "aws_region", "source_ip",
+                  "source_asn", "time_from", "time_to", "errors_only", "writes_only", "contains")
 
-    def get_events(event_ids: list):
-        if not isinstance(event_ids, list) or not event_ids:
-            raise ToolError("event_ids must be a non-empty list", kind="bad_arguments")
-        if len(event_ids) > 20:
-            raise ToolError("At most 20 event_ids per call (got %d)" % len(event_ids),
-                            kind="bad_arguments")
-        index = {e["event_id"]: e for e in store.events(incident_id)}
-        missing = [i for i in event_ids if i not in index]
-        if missing:
-            raise ToolError("No such event_id(s): %s" % ", ".join(missing[:5]), kind="bad_arguments")
-        fetched.update(event_ids)
-        return {"events": [index[i] for i in event_ids]}
 
-    def describe_principal(name: str):
-        prof = store.principals.get(name)
-        if not prof:
-            raise ToolError(
-                "No baseline for principal %r. Known principals: %s"
-                % (name, ", ".join(sorted(store.principals))), kind="bad_arguments")
-        return prof
+def search_logs_impl(store: IncidentStore, incident_id: str, limit: int = 25, **filters) -> dict:
+    allowed = set(SEARCH_FILTERS)
+    unknown = set(filters) - allowed
+    if unknown:
+        raise ToolError("Unknown filter(s): %s. Allowed: %s"
+                        % (", ".join(sorted(unknown)), ", ".join(sorted(allowed))),
+                        kind="bad_arguments")
+    events = store.events(incident_id)
+    hits = [e for e in events if _matches(e, **filters)]
+    limit = max(1, min(int(limit), 100))
+    return {
+        "total_matched": len(hits),
+        "returned": min(len(hits), limit),
+        "truncated": len(hits) > limit,
+        "corpus_size": len(events),
+        "events": [_slim(e) for e in hits[:limit]],
+    }
+
+
+def get_events_impl(store: IncidentStore, incident_id: str, event_ids: list) -> dict:
+    if not isinstance(event_ids, list) or not event_ids:
+        raise ToolError("event_ids must be a non-empty list", kind="bad_arguments")
+    if len(event_ids) > 20:
+        raise ToolError("At most 20 event_ids per call (got %d)" % len(event_ids),
+                        kind="bad_arguments")
+    index = {e["event_id"]: e for e in store.events(incident_id)}
+    missing = [i for i in event_ids if i not in index]
+    if missing:
+        raise ToolError("No such event_id(s): %s" % ", ".join(missing[:5]), kind="bad_arguments")
+    return {"events": [index[i] for i in event_ids]}
+
+
+def describe_principal_impl(store: IncidentStore, name: str) -> dict:
+    prof = store.principals.get(name)
+    if not prof:
+        raise ToolError(
+            "No baseline for principal %r. Known principals: %s"
+            % (name, ", ".join(sorted(store.principals))), kind="bad_arguments")
+    return prof
+
+
+SEARCH_LOGS_DESCRIPTION = (
+    "Search this incident's audit log. All filters are AND-ed and exact-match except "
+    "`contains`, which is a case-insensitive substring search over request parameters, "
+    "resources and response elements. Returns slim rows plus `total_matched` — if "
+    "`truncated` is true, narrow the filters rather than raising the limit. Start broad "
+    "to learn the shape of the window, then narrow.")
+
+GET_EVENTS_DESCRIPTION = (
+    "Fetch complete records for up to 20 event_ids returned by search_logs. "
+    "Use this before citing an event as evidence — slim search rows omit "
+    "request parameters, resources and response elements.")
+
+DESCRIBE_PRINCIPAL_DESCRIPTION = (
+    "Behavioural baseline for an IAM principal: home regions, typical API actions, "
+    "typical active hours (UTC), known source ASNs, account age and scope notes. "
+    "Activity is only anomalous relative to this baseline — a service role launching "
+    "40 instances may be routine. Check the baseline before judging volume or timing.")
+
+
+def make_submit_verdict_tool(run_state: dict, fetched: set) -> Tool:
+    """submit_verdict is loop control, not a tool-plane capability, so it stays client-side
+    in both modes. `fetched` is the set of event_ids the client has seen returned by
+    get_events — the only ones a verdict may cite."""
 
     def submit_verdict(verdict: str, severity: str, recommended_action: str,
                        evidence_event_ids: list, rationale: str):
@@ -208,15 +238,49 @@ def build_registry(store: IncidentStore, incident_id: str, run_state: dict) -> T
         }
         return {"accepted": True, "note": "Verdict recorded. Triage complete; stop now."}
 
+    return Tool(
+        name="submit_verdict",
+        description=(
+            "Record the final triage verdict and end the investigation. Call exactly once, "
+            "last. evidence_event_ids must cite the specific events that establish the verdict "
+            "— for a false positive, the events that prove the activity was legitimate. "
+            "Citing events you have not fetched with get_events is an error."),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "verdict": {"type": "string", "enum": list(VERDICTS)},
+                "severity": {"type": "string", "enum": list(SEVERITIES)},
+                "recommended_action": {"type": "string", "enum": list(ACTIONS)},
+                "evidence_event_ids": {"type": "array", "items": {"type": "string"}},
+                "rationale": {"type": "string", "description": "Why, referencing the evidence. Min 40 chars."},
+            },
+            "required": ["verdict", "severity", "recommended_action", "evidence_event_ids", "rationale"],
+        },
+        fn=submit_verdict, is_terminal=True, mutates=True,
+    )
+
+
+def build_registry(store: IncidentStore, incident_id: str, run_state: dict) -> ToolRegistry:
+    """Bind the tool plane to one incident. run_state collects the terminal verdict.
+
+    The in-process path: kept as the test oracle for the FastMCP servers."""
+    fetched: set = set()  # event_ids returned by get_events; the only ones submit_verdict accepts
+
+    def search_logs(limit: int = 25, **filters):
+        return search_logs_impl(store, incident_id, limit, **filters)
+
+    def get_events(event_ids: list):
+        payload = get_events_impl(store, incident_id, event_ids)
+        fetched.update(event_ids)
+        return payload
+
+    def describe_principal(name: str):
+        return describe_principal_impl(store, name)
+
     reg = ToolRegistry()
     reg.add(Tool(
         name="search_logs",
-        description=(
-            "Search this incident's audit log. All filters are AND-ed and exact-match except "
-            "`contains`, which is a case-insensitive substring search over request parameters, "
-            "resources and response elements. Returns slim rows plus `total_matched` — if "
-            "`truncated` is true, narrow the filters rather than raising the limit. Start broad "
-            "to learn the shape of the window, then narrow."),
+        description=SEARCH_LOGS_DESCRIPTION,
         input_schema={
             "type": "object",
             "properties": {
@@ -239,9 +303,7 @@ def build_registry(store: IncidentStore, incident_id: str, run_state: dict) -> T
     ))
     reg.add(Tool(
         name="get_events",
-        description=("Fetch complete records for up to 20 event_ids returned by search_logs. "
-                     "Use this before citing an event as evidence — slim search rows omit "
-                     "request parameters, resources and response elements."),
+        description=GET_EVENTS_DESCRIPTION,
         input_schema={
             "type": "object",
             "properties": {"event_ids": {"type": "array", "items": {"type": "string"},
@@ -252,11 +314,7 @@ def build_registry(store: IncidentStore, incident_id: str, run_state: dict) -> T
     ))
     reg.add(Tool(
         name="describe_principal",
-        description=(
-            "Behavioural baseline for an IAM principal: home regions, typical API actions, "
-            "typical active hours (UTC), known source ASNs, account age and scope notes. "
-            "Activity is only anomalous relative to this baseline — a service role launching "
-            "40 instances may be routine. Check the baseline before judging volume or timing."),
+        description=DESCRIBE_PRINCIPAL_DESCRIPTION,
         input_schema={
             "type": "object",
             "properties": {"name": {"type": "string", "description": "Principal name, e.g. svc-ci-deploy"}},
@@ -264,24 +322,5 @@ def build_registry(store: IncidentStore, incident_id: str, run_state: dict) -> T
         },
         fn=describe_principal,
     ))
-    reg.add(Tool(
-        name="submit_verdict",
-        description=(
-            "Record the final triage verdict and end the investigation. Call exactly once, "
-            "last. evidence_event_ids must cite the specific events that establish the verdict "
-            "— for a false positive, the events that prove the activity was legitimate. "
-            "Citing events you have not fetched with get_events is an error."),
-        input_schema={
-            "type": "object",
-            "properties": {
-                "verdict": {"type": "string", "enum": list(VERDICTS)},
-                "severity": {"type": "string", "enum": list(SEVERITIES)},
-                "recommended_action": {"type": "string", "enum": list(ACTIONS)},
-                "evidence_event_ids": {"type": "array", "items": {"type": "string"}},
-                "rationale": {"type": "string", "description": "Why, referencing the evidence. Min 40 chars."},
-            },
-            "required": ["verdict", "severity", "recommended_action", "evidence_event_ids", "rationale"],
-        },
-        fn=submit_verdict, is_terminal=True, mutates=True,
-    ))
+    reg.add(make_submit_verdict_tool(run_state, fetched))
     return reg
