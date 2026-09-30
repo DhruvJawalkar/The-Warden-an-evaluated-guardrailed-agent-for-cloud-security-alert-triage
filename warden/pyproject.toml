@@ -1,0 +1,27 @@
+[project]
+name = "warden"
+version = "0.1.0"
+description = "Agentic cloud-security alert triage with a first-class evaluation harness"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic==1.9.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

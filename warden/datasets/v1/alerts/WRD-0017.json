@@ -1,0 +1,15 @@
+{
+  "alert_id": "ALT-0017",
+  "incident_id": "WRD-0017",
+  "detected_at": "2026-08-26T23:05:00Z",
+  "rule_id": "R-1503",
+  "rule_name": "Access to customer-exports outside owning team",
+  "severity_reported": "low",
+  "summary": "alice.chen read one object from acme-customer-exports. Volume below alerting threshold.",
+  "primary_principal": "alice.chen",
+  "account_id": "418209773165",
+  "region": "us-east-1",
+  "seed_event_ids": [
+    "evt-WRD-0017-0004"
+  ]
+}

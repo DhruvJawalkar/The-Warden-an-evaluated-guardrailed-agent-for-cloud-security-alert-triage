@@ -1,0 +1,15 @@
+{
+  "alert_id": "ALT-0019",
+  "incident_id": "WRD-0019",
+  "detected_at": "2026-08-28T01:42:00Z",
+  "rule_id": "R-2604",
+  "rule_name": "Bulk secret retrieval by non-rotation principal",
+  "severity_reported": "high",
+  "summary": "svc-lambda-invoice read prod/db/master, which is outside its documented permissions.",
+  "primary_principal": "svc-lambda-invoice",
+  "account_id": "418209773165",
+  "region": "us-east-1",
+  "seed_event_ids": [
+    "evt-WRD-0019-0003"
+  ]
+}

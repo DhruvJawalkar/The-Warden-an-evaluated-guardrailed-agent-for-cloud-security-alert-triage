@@ -1,0 +1,15 @@
+{
+  "alert_id": "ALT-0005",
+  "incident_id": "WRD-0005",
+  "detected_at": "2026-08-28T16:57:00Z",
+  "rule_id": "R-3310",
+  "rule_name": "GPU instance burst in non-home region",
+  "severity_reported": "medium",
+  "summary": "svc-ci-deploy launched 24 p4d.24xlarge instances across ap-south-1 and sa-east-1.",
+  "primary_principal": "svc-ci-deploy",
+  "account_id": "418209773165",
+  "region": "ap-south-1",
+  "seed_event_ids": [
+    "evt-WRD-0005-0001"
+  ]
+}

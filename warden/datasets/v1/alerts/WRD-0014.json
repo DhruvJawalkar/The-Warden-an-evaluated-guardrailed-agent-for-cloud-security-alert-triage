@@ -1,0 +1,15 @@
+{
+  "alert_id": "ALT-0014",
+  "incident_id": "WRD-0014",
+  "detected_at": "2026-09-06T15:45:00Z",
+  "rule_id": "R-1001",
+  "rule_name": "Repeated console authentication failures followed by success",
+  "severity_reported": "high",
+  "summary": "6 failed console logins for bob.martins, then a successful login.",
+  "primary_principal": "bob.martins",
+  "account_id": "418209773165",
+  "region": "us-east-1",
+  "seed_event_ids": [
+    "evt-WRD-0014-0007"
+  ]
+}

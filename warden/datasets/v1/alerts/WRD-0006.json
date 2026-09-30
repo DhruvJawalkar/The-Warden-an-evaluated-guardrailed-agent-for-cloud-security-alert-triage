@@ -1,0 +1,15 @@
+{
+  "alert_id": "ALT-0006",
+  "incident_id": "WRD-0006",
+  "detected_at": "2026-08-29T23:34:00Z",
+  "rule_id": "R-3401",
+  "rule_name": "Bulk snapshot creation",
+  "severity_reported": "medium",
+  "summary": "svc-backup created 9 EBS snapshots in 18 minutes at 03:12 UTC.",
+  "primary_principal": "svc-backup",
+  "account_id": "418209773165",
+  "region": "us-east-1",
+  "seed_event_ids": [
+    "evt-WRD-0006-0001"
+  ]
+}

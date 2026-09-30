@@ -1,0 +1,15 @@
+{
+  "alert_id": "ALT-0007",
+  "incident_id": "WRD-0007",
+  "detected_at": "2026-08-30T09:39:00Z",
+  "rule_id": "R-1188",
+  "rule_name": "S3 public access block removed",
+  "severity_reported": "high",
+  "summary": "marcus.webb removed the public access block and applied a wildcard read policy to acme-customer-exports.",
+  "primary_principal": "marcus.webb",
+  "account_id": "418209773165",
+  "region": "us-east-1",
+  "seed_event_ids": [
+    "evt-WRD-0007-0002"
+  ]
+}

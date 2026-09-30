@@ -1,0 +1,15 @@
+{
+  "alert_id": "ALT-0004",
+  "incident_id": "WRD-0004",
+  "detected_at": "2026-08-27T04:11:00Z",
+  "rule_id": "R-1043",
+  "rule_name": "Console login from new geography",
+  "severity_reported": "medium",
+  "summary": "priya.rao authenticated from Germany (AS3320), 6,400 km from her last login 9 hours earlier.",
+  "primary_principal": "priya.rao",
+  "account_id": "418209773165",
+  "region": "eu-west-1",
+  "seed_event_ids": [
+    "evt-WRD-0004-0001"
+  ]
+}

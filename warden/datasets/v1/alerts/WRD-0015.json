@@ -1,0 +1,15 @@
+{
+  "alert_id": "ALT-0015",
+  "incident_id": "WRD-0015",
+  "detected_at": "2026-08-24T15:12:00Z",
+  "rule_id": "R-1001",
+  "rule_name": "Repeated console authentication failures followed by success",
+  "severity_reported": "high",
+  "summary": "11 failed console logins for dana.okafor from AS14061, then a successful login without MFA.",
+  "primary_principal": "dana.okafor",
+  "account_id": "418209773165",
+  "region": "us-east-1",
+  "seed_event_ids": [
+    "evt-WRD-0015-0012"
+  ]
+}

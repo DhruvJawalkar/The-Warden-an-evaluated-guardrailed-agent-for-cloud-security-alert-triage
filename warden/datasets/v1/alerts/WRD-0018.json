@@ -1,0 +1,15 @@
+{
+  "alert_id": "ALT-0018",
+  "incident_id": "WRD-0018",
+  "detected_at": "2026-08-27T20:55:00Z",
+  "rule_id": "R-1502",
+  "rule_name": "High-volume object retrieval",
+  "severity_reported": "medium",
+  "summary": "marcus.webb retrieved 9 objects from acme-analytics-lake in 45 minutes.",
+  "primary_principal": "marcus.webb",
+  "account_id": "418209773165",
+  "region": "us-east-1",
+  "seed_event_ids": [
+    "evt-WRD-0018-0001"
+  ]
+}

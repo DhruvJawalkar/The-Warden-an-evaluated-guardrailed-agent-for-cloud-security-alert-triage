@@ -1,0 +1,253 @@
+{
+  "alice.chen": {
+    "principal_id": "AIDA00000000000000001",
+    "name": "alice.chen",
+    "principal_type": "IAMUser",
+    "is_service": false,
+    "department": "Data Engineering",
+    "created_days_ago": 980,
+    "home_regions": [
+      "us-east-1",
+      "us-west-2"
+    ],
+    "typical_events": [
+      "GetObject",
+      "ListBucket",
+      "PutObject",
+      "StartQueryExecution",
+      "ConsoleLogin"
+    ],
+    "typical_hours_utc": [
+      13,
+      23
+    ],
+    "known_asns": [
+      "AS7922 Comcast",
+      "AS14618 Amazon"
+    ],
+    "notes": "Owns the analytics-lake pipelines. Routinely reads s3://acme-analytics-lake."
+  },
+  "bob.martins": {
+    "principal_id": "AIDA00000000000000002",
+    "name": "bob.martins",
+    "principal_type": "IAMUser",
+    "is_service": false,
+    "department": "Platform Engineering",
+    "created_days_ago": 1420,
+    "home_regions": [
+      "us-east-1"
+    ],
+    "typical_events": [
+      "DescribeInstances",
+      "GetObject",
+      "ConsoleLogin",
+      "AssumeRole"
+    ],
+    "typical_hours_utc": [
+      12,
+      22
+    ],
+    "known_asns": [
+      "AS7922 Comcast"
+    ],
+    "notes": "Platform on-call. Assumes svc-ci-deploy during releases."
+  },
+  "priya.rao": {
+    "principal_id": "AIDA00000000000000003",
+    "name": "priya.rao",
+    "principal_type": "IAMUser",
+    "is_service": false,
+    "department": "Security",
+    "created_days_ago": 610,
+    "home_regions": [
+      "us-east-1",
+      "eu-west-1"
+    ],
+    "typical_events": [
+      "LookupEvents",
+      "DescribeTrails",
+      "GetBucketPolicy",
+      "ConsoleLogin"
+    ],
+    "typical_hours_utc": [
+      8,
+      18
+    ],
+    "known_asns": [
+      "AS3320 DTAG",
+      "AS7922 Comcast"
+    ],
+    "notes": "Detection engineer. Read-only across the estate by design."
+  },
+  "dana.okafor": {
+    "principal_id": "AIDA00000000000000004",
+    "name": "dana.okafor",
+    "principal_type": "IAMUser",
+    "is_service": false,
+    "department": "Finance",
+    "created_days_ago": 240,
+    "home_regions": [
+      "us-east-1"
+    ],
+    "typical_events": [
+      "GetObject",
+      "ConsoleLogin",
+      "GetCostAndUsage"
+    ],
+    "typical_hours_utc": [
+      13,
+      22
+    ],
+    "known_asns": [
+      "AS701 Verizon"
+    ],
+    "notes": "Reads s3://acme-finance-reports only. No infrastructure access."
+  },
+  "marcus.webb": {
+    "principal_id": "AIDA00000000000000005",
+    "name": "marcus.webb",
+    "principal_type": "IAMUser",
+    "is_service": false,
+    "department": "Data Engineering",
+    "created_days_ago": 95,
+    "home_regions": [
+      "us-east-1"
+    ],
+    "typical_events": [
+      "GetObject",
+      "ListBucket",
+      "ConsoleLogin"
+    ],
+    "typical_hours_utc": [
+      13,
+      23
+    ],
+    "known_asns": [
+      "AS7922 Comcast"
+    ],
+    "notes": "Joined 3 months ago. Scoped to s3://acme-analytics-lake/project-atlas/ only."
+  },
+  "admin-breakglass": {
+    "principal_id": "AIDA00000000000000006",
+    "name": "admin-breakglass",
+    "principal_type": "IAMUser",
+    "is_service": false,
+    "department": "Security",
+    "created_days_ago": 1600,
+    "home_regions": [
+      "us-east-1"
+    ],
+    "typical_events": [
+      "ConsoleLogin"
+    ],
+    "typical_hours_utc": [
+      0,
+      23
+    ],
+    "known_asns": [],
+    "notes": "Break-glass account. Any use is expected to be paged and ticketed. Last used 214 days ago."
+  },
+  "svc-ci-deploy": {
+    "principal_id": "AROA00000000000000001",
+    "name": "svc-ci-deploy",
+    "principal_type": "AssumedRole",
+    "is_service": true,
+    "department": "Platform Engineering",
+    "created_days_ago": 1500,
+    "home_regions": [
+      "us-east-1",
+      "us-west-2",
+      "eu-west-1"
+    ],
+    "typical_events": [
+      "RunInstances",
+      "TerminateInstances",
+      "PutObject",
+      "CreateStack",
+      "UpdateFunctionCode"
+    ],
+    "typical_hours_utc": [
+      0,
+      23
+    ],
+    "known_asns": [
+      "AS14618 Amazon"
+    ],
+    "notes": "CI/CD deploy role. Bursty by design: release windows launch 20-60 instances in minutes."
+  },
+  "svc-backup": {
+    "principal_id": "AROA00000000000000002",
+    "name": "svc-backup",
+    "principal_type": "AssumedRole",
+    "is_service": true,
+    "department": "Platform Engineering",
+    "created_days_ago": 1500,
+    "home_regions": [
+      "us-east-1",
+      "us-west-2"
+    ],
+    "typical_events": [
+      "CreateSnapshot",
+      "DescribeVolumes",
+      "DeleteSnapshot",
+      "CopySnapshot"
+    ],
+    "typical_hours_utc": [
+      2,
+      5
+    ],
+    "known_asns": [
+      "AS14618 Amazon"
+    ],
+    "notes": "Nightly backup role. Snapshots 02:00-05:00 UTC. Never shares snapshots externally."
+  },
+  "svc-secrets-rotator": {
+    "principal_id": "AROA00000000000000003",
+    "name": "svc-secrets-rotator",
+    "principal_type": "AssumedRole",
+    "is_service": true,
+    "department": "Security",
+    "created_days_ago": 800,
+    "home_regions": [
+      "us-east-1"
+    ],
+    "typical_events": [
+      "GetSecretValue",
+      "PutSecretValue",
+      "UpdateSecretVersionStage",
+      "ListSecrets"
+    ],
+    "typical_hours_utc": [
+      6,
+      7
+    ],
+    "known_asns": [
+      "AS14618 Amazon"
+    ],
+    "notes": "Rotates all secrets on the 1st of each month, 06:00-07:00 UTC, in one pass."
+  },
+  "svc-lambda-invoice": {
+    "principal_id": "AROA00000000000000004",
+    "name": "svc-lambda-invoice",
+    "principal_type": "AssumedRole",
+    "is_service": true,
+    "department": "Finance",
+    "created_days_ago": 430,
+    "home_regions": [
+      "us-east-1"
+    ],
+    "typical_events": [
+      "GetObject",
+      "PutObject",
+      "SendEmail"
+    ],
+    "typical_hours_utc": [
+      0,
+      23
+    ],
+    "known_asns": [
+      "AS14618 Amazon"
+    ],
+    "notes": "Invoice-rendering Lambda. Reads finance reports, writes PDFs. No secrets access."
+  }
+}

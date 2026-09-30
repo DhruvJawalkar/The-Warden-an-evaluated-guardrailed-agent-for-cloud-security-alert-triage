@@ -1,0 +1,15 @@
+{
+  "alert_id": "ALT-0013",
+  "incident_id": "WRD-0013",
+  "detected_at": "2026-09-05T14:17:00Z",
+  "rule_id": "R-3402",
+  "rule_name": "EBS snapshot shared with external account",
+  "severity_reported": "high",
+  "summary": "marcus.webb shared snapshot snap-07d1e9a2 with AWS account 609284471033, which is outside the organisation.",
+  "primary_principal": "marcus.webb",
+  "account_id": "418209773165",
+  "region": "us-east-1",
+  "seed_event_ids": [
+    "evt-WRD-0013-0002"
+  ]
+}

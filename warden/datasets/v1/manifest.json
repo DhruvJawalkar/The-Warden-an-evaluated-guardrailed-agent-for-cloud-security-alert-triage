@@ -1,0 +1,20 @@
+{
+  "dataset_version": "v1",
+  "schema_version": "1.0.0",
+  "generator_version": "1.0.0",
+  "seed": 20260903,
+  "incident_count": 20,
+  "total_events": 7190,
+  "tier_distribution": {
+    "easy": 9,
+    "noisy": 7,
+    "hard": 4
+  },
+  "verdict_distribution": {
+    "true_positive": 13,
+    "false_positive": 7
+  },
+  "account_id": "418209773165",
+  "principal_count": 10,
+  "note": "Regenerate with: make gen. Deterministic for a fixed seed."
+}

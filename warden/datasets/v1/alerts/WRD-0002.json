@@ -1,0 +1,15 @@
+{
+  "alert_id": "ALT-0002",
+  "incident_id": "WRD-0002",
+  "detected_at": "2026-08-25T10:54:00Z",
+  "rule_id": "R-3310",
+  "rule_name": "Instance burst detected",
+  "severity_reported": "medium",
+  "summary": "svc-ci-deploy launched 45 instances in us-west-2 within 6 minutes.",
+  "primary_principal": "svc-ci-deploy",
+  "account_id": "418209773165",
+  "region": "us-west-2",
+  "seed_event_ids": [
+    "evt-WRD-0002-0001"
+  ]
+}

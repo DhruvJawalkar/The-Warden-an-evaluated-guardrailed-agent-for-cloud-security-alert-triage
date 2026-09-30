@@ -1,0 +1,15 @@
+{
+  "alert_id": "ALT-0020",
+  "incident_id": "WRD-0020",
+  "detected_at": "2026-08-29T06:34:00Z",
+  "rule_id": "R-2101",
+  "rule_name": "IAM user created",
+  "severity_reported": "low",
+  "summary": "A new IAM user svc-metrics-agent was created by admin-breakglass.",
+  "primary_principal": "admin-breakglass",
+  "account_id": "418209773165",
+  "region": "us-east-1",
+  "seed_event_ids": [
+    "evt-WRD-0020-0004"
+  ]
+}
