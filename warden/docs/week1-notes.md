@@ -88,3 +88,48 @@ turn one, so turns undercount work. Hard tier: 4.0 turns on average against `min
 - `--list` prints CRLF on Windows. Strip `\r` in shell loops (`| tr -d '\r'`).
 - Pre-enforcement runs are kept locally in `runs/pre-enforcement/` (gitignored).
 - Run the same 20 with a second model (Sonnet) before week 6, so the "before" column has a comparison.
+
+## 5. Prompt tuning: v1 vs v2
+
+`--prompt v1` is the shipped baseline prompt (frozen; the `w1-baseline` numbers above). `--prompt v2` appends a
+four-point METHOD block: compare baseline dimension by dimension, treat the alerting principal as a possible
+victim, search `writes_only` across the window, and fetch and cite every supporting event including the
+earliest one. It uses generic analyst method only: no scenario, principal, port or event from the dataset, so
+the prompt does not leak the answer key. Replicates: v1 x3 (the baseline set plus two reruns), v2 x2, all 20
+incidents each, Haiku 4.5. Reproduce with `scripts/compare_prompts.py`.
+
+| | verdict | evidence recall | principal coverage | tool calls | cost/run |
+|---|---|---|---|---|---|
+| v1 (all 20) | 95% | 75% | 98% | 6.4 | $0.022 |
+| v2 (all 20) | 92% | 88% | 98% | 10.0 | $0.044 |
+| v1 (excl. WRD-0006/0008) | 94% | 79% | 97% | 6.4 | $0.022 |
+| v2 (excl. WRD-0006/0008) | 97% | 89% | 97% | 10.0 | $0.043 |
+
+**Dataset defect found.** WRD-0006 and WRD-0008 (noisy, false positive) have hardcoded alert-summary times
+(03:12 and 06:14 UTC) and answer-key rationales ("inside the 02:00-05:00 backup window") that contradict the
+generated logs (22:50-23:06 and 23:20 UTC). v1 said the activity was "within the typical 02:00-05:00 window",
+which is false against the logs, and was marked right. v2 read the timestamps correctly, called it a timing
+anomaly, and was marked wrong (WRD-0006 0/2). The two rows above are therefore given with and without those
+incidents.
+
+**Resolved after the comparison.** Root cause: every incident's `t0` gets a random hour, but these two scenarios
+hardcode a time of day in their summary and answer key. They now pin their start time (`@starts_at` in
+`scenarios.py`), the generator is `1.0.1`, and `datasets/v1` was regenerated in place. Only WRD-0006 and
+WRD-0008 changed (logs and alert `detected_at`); the other 18 logs and alerts are unchanged apart from the
+`generated_at` stamps in `incidents.jsonl`. **The v1/v2 numbers above were measured on the pre-fix data and were
+not re-run** (cost); a single fresh pass on the fixed data is the first thing to do before trusting any
+per-incident number for WRD-0006/0008. The `w1-baseline` tag still points at the unfixed dataset.
+
+**What v2 did.** Evidence recall +13 points, and easy tier 81% to 98%. WRD-0005 flipped from 1/3 to 2/2 correct: the
+dangerous mining false negative is gone. Cost and tool calls roughly double (6.4 to 10.0 calls), which is the
+price of "fetch and cite everything". No stalls or budget hits in either variant (max 19 turns of 25).
+
+**What v2 did not do.** The point-2 instruction (victim versus cause) did **not** fix WRD-0019: recall 25% to
+38%, and principal coverage on the hard tier stayed at 88%, so the agent still did not reach the root-cause
+principal. WRD-0017 got worse (50% to 25%). Hard-tier recall is 53% to 61%, within noise at n=2 to 3.
+Prompt instructions alone do not seem to teach this model to pivot to a second principal. That is a candidate
+for a structural fix in week 3 (for example a forced "who else touched this resource" step) rather than more prose.
+
+**Caveats.** The 20 incidents are both the tuning set and the test set, so v2's gain is optimistic. Replicates are
+2 to 3, so single-incident differences are noise; only the aggregate moves are worth reading. Week 4 should
+add a held-out set. v2 is now the default (`--prompt v1` reproduces the baseline).

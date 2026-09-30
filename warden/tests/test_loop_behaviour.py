@@ -41,3 +41,11 @@ def test_pricing_keys_resolve_api_ids():
     for model in ("claude-haiku-4-5-20251001", "claude-sonnet-4-5-20250929",
                   "claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1"):
         assert pricing_key(model) in PRICING_USD_PER_MTOK, model
+
+
+def test_prompt_v1_is_the_frozen_baseline_and_v2_extends_it():
+    from warden.loop.agent_loop import V2_METHOD, build_system_prompt
+    alert = {"account_id": "1", "alert_id": "A"}
+    v1 = build_system_prompt(alert, ["search_logs"], "v1")
+    v2 = build_system_prompt(alert, ["search_logs"], "v2")
+    assert "METHOD" not in v1 and V2_METHOD in v2 and v2.endswith(v1.split("ALERT\n", 1)[1])

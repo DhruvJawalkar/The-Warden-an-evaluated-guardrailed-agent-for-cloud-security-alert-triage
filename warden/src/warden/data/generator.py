@@ -34,7 +34,7 @@ from warden.data.schema import (
 )
 from warden.data.scenarios import BUCKETS, CAST, REGISTRY
 
-GENERATOR_VERSION = "1.0.0"
+GENERATOR_VERSION = "1.0.1"  # 1.0.1: pin start time for clock-dependent scenarios (0006, 0008)
 ACCOUNT_ID = "418209773165"
 
 USER_AGENTS = [
@@ -156,6 +156,9 @@ def build_incident(index: int, builder, tier: str, seed: int) -> tuple:
     t0 = datetime(2026, 8, 24, 0, 0, 0, tzinfo=timezone.utc) + timedelta(
         days=index % 14, hours=rng.randint(0, 23), minutes=rng.randint(0, 59)
     )
+    pin = getattr(builder, "start_utc", None)  # rng already advanced above, so streams are unchanged
+    if pin:
+        t0 = t0.replace(hour=pin[0], minute=pin[1])
     ctx = GenContext(rng, incident_id, t0.replace(tzinfo=None))
     result = builder(ctx)
 

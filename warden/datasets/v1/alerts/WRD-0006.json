@@ -1,7 +1,7 @@
 {
   "alert_id": "ALT-0006",
   "incident_id": "WRD-0006",
-  "detected_at": "2026-08-29T23:34:00Z",
+  "detected_at": "2026-08-29T03:56:00Z",
   "rule_id": "R-3401",
   "rule_name": "Bulk snapshot creation",
   "severity_reported": "medium",

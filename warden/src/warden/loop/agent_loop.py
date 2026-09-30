@@ -510,10 +510,32 @@ class AgentLoop:
 
 # --- starter system prompt ---------------------------------------------------
 
-def build_system_prompt(alert: dict, tool_names: list) -> str:
+PROMPT_VERSIONS = ("v1", "v2")
+
+# v2 addendum. Generic analyst method only: nothing here may name a scenario, principal, port,
+# service or event from the dataset, or the prompt is leaking the answer key.
+V2_METHOD = (
+    "\n\nMETHOD\n"
+    "1. A baseline says what is normal for a principal; it does not clear everything the "
+    "principal does. Compare region, source network, API action, targeted resource and scope "
+    "of access against the baseline separately. A mismatch in any one dimension is a finding, "
+    "even when volume and timing look routine.\n"
+    "2. The alerting principal may be the victim rather than the cause. If the activity looks "
+    "enabled by a change (permissions, role, credentials, configuration, code), search for who "
+    "made that change and when, and investigate that principal too.\n"
+    "3. Check what else the principal changed: search writes_only across the window, not just "
+    "the alerting event type.\n"
+    "4. Before submit_verdict, fetch with get_events every event that supports your verdict, "
+    "including the earliest one in the chain, and cite them all. For a false positive, cite the "
+    "events that affirmatively show the activity was legitimate, not merely the absence of "
+    "anomalies.\n"
+)
+
+
+def build_system_prompt(alert: dict, tool_names: list, version: str = "v1") -> str:
     """Deliberately thin. Tuning this is part of week 1 — but change it only
     with an eval in hand (week 4), or you are just moving noise around."""
-    return (
+    base = (
         "You are a cloud security analyst triaging one alert in AWS account %s.\n\n"
         "Investigate using the available tools (%s), then call submit_verdict exactly once.\n"
         "Activity is only anomalous relative to a principal's baseline; check it before "
@@ -524,6 +546,10 @@ def build_system_prompt(alert: dict, tool_names: list) -> str:
         "ALERT\n%s"
         % (alert["account_id"], ", ".join(tool_names), json.dumps(alert, indent=2))
     )
+    if version == "v1":
+        return base
+    head, alert_block = base.split("ALERT\n", 1)
+    return head.rstrip("\n") + V2_METHOD + "\nALERT\n" + alert_block
 
 
 # --- CLI ---------------------------------------------------------------------
@@ -577,6 +603,8 @@ def main() -> None:
     ap.add_argument("--model", default=os.environ.get("WARDEN_MODEL", "claude-sonnet-4-5-20250929"))
     ap.add_argument("--max-steps", type=int, default=int(os.environ.get("WARDEN_MAX_STEPS", 25)))
     ap.add_argument("--max-usd", type=float, default=float(os.environ.get("WARDEN_MAX_USD", 0.50)))
+    ap.add_argument("--prompt", choices=PROMPT_VERSIONS, default="v2")
+    ap.add_argument("--run-dir", default="runs")
     ap.add_argument("--dry-run", action="store_true", help="ScriptedClient, no API calls")
     ap.add_argument("--check", action="store_true", help="report unimplemented stubs")
     ap.add_argument("--list", action="store_true", help="list incident ids")
@@ -595,12 +623,13 @@ def main() -> None:
     alert = store.alert(args.incident)
     run_state: dict = {}
     registry = build_registry(store, args.incident, run_state)
-    transcript = Transcript(build_system_prompt(alert, registry.names()))
+    transcript = Transcript(build_system_prompt(alert, registry.names(), args.prompt))
     transcript.add_user("Triage alert %s. Investigate, then submit your verdict."
                         % alert["alert_id"])
 
     client = ScriptedClient([]) if args.dry_run else AnthropicClient(args.model)
     run = RunRecord.new(args.incident, args.model if not args.dry_run else "scripted")
+    run.prompt_version = args.prompt
     loop = AgentLoop(client, registry, transcript, Budget(max_steps=args.max_steps, max_usd=args.max_usd),
                      run, run_state)
 
@@ -611,7 +640,7 @@ def main() -> None:
         sys.exit(2)
     finally:
         if run.steps or run.stop_cause:
-            print("run saved: %s" % run.save(), file=sys.stderr)
+            print("run saved: %s" % run.save(args.run_dir), file=sys.stderr)
 
     print(json.dumps({"stop_cause": run.stop_cause, "steps": len(run.steps),
                       "cost_usd": round(run.total_cost_usd, 4),

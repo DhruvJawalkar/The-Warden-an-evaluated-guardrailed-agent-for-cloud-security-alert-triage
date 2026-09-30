@@ -18,6 +18,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+
+def starts_at(hour: int, minute: int):
+    """Pin a scenario's t0 time-of-day (UTC). Only for scenarios whose alert text or answer key
+    makes a claim about the clock, e.g. "inside the 02:00-05:00 backup window"; everything else
+    keeps its staggered random start."""
+    def deco(fn):
+        fn.start_utc = (hour, minute)
+        return fn
+    return deco
+
 # --- the cast ----------------------------------------------------------------
 # Shared across all incidents so describe_principal() is a stable global lookup.
 CAST = {
@@ -457,6 +467,7 @@ def benign_travel_login(ctx) -> ScenarioResult:
                           "reaches a human at all."))
 
 
+@starts_at(3, 11)  # first snapshot lands at 03:12, matching the alert summary
 def benign_backup_snapshots(ctx) -> ScenarioResult:
     e = []
     for i in range(9):
@@ -480,6 +491,7 @@ def benign_backup_snapshots(ctx) -> ScenarioResult:
                           "is itself evidence and should be stated."))
 
 
+@starts_at(6, 12)  # first GetSecretValue (the seed) lands at 06:14, matching the summary
 def benign_secrets_rotation(ctx) -> ScenarioResult:
     e = []
     sess = ctx.session()

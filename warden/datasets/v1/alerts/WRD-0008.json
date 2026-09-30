@@ -1,7 +1,7 @@
 {
   "alert_id": "ALT-0008",
   "incident_id": "WRD-0008",
-  "detected_at": "2026-09-01T00:03:00Z",
+  "detected_at": "2026-08-31T06:57:00Z",
   "rule_id": "R-2604",
   "rule_name": "Bulk secret retrieval",
   "severity_reported": "high",

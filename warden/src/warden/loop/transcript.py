@@ -88,6 +88,7 @@ class RunRecord:
     final_verdict: Optional[dict] = None
     stop_cause: str = ""
     finished_at: float = 0.0
+    prompt_version: str = ""
 
     @classmethod
     def new(cls, incident_id: str, model: str) -> "RunRecord":
@@ -119,6 +120,7 @@ class RunRecord:
             "wall_clock_s": round((self.finished_at or time.time()) - self.started_at, 2),
             "step_count": len(self.steps),
             "stop_cause": self.stop_cause,
+            "prompt_version": self.prompt_version,
             "final_verdict": self.final_verdict,
             "totals": {"usage": asdict(u), "cost_usd": round(self.total_cost_usd, 6)},
             "trajectory": self.tool_call_names(),
