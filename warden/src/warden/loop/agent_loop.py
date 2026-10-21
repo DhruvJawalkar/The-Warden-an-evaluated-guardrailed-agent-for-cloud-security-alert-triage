@@ -294,6 +294,7 @@ class AgentLoop:
                 result = ToolResult(call_id=call.id, name=call.name, payload=str(exc),
                                     is_error=True, error_kind=exc.kind)
                 text = self.handle_tool_error(call, exc, self.consecutive_tool_errors)
+            result.rendered_chars = len(text)
             results.append(result)
             rendered.append((call.id, text, result.is_error))
         return results, rendered

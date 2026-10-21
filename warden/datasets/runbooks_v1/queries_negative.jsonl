@@ -1,0 +1,12 @@
+{"qid":"N01","intent":"adjacent","query":"An employee reported a phishing email with a malicious attachment. How do we handle the mailbox and the sender domain?","gold":[]}
+{"qid":"N02","intent":"adjacent","query":"Ransomware encrypted files on a Windows file server. What are the isolation and recovery steps?","gold":[]}
+{"qid":"N03","intent":"adjacent","query":"A Kubernetes pod is running a privileged container with hostPath mounts. Is that a cluster breakout?","gold":[]}
+{"qid":"N04","intent":"adjacent","query":"Our public web application shows a spike in SQL injection attempts blocked by the WAF. Do we need to act?","gold":[]}
+{"qid":"N05","intent":"adjacent","query":"DNS logs show long random subdomain lookups from a laptop. Could this be tunnelling?","gold":[]}
+{"qid":"N06","intent":"adjacent","query":"An Azure AD conditional access policy was disabled by a tenant administrator. What should we check?","gold":[]}
+{"qid":"N07","intent":"adjacent","query":"A DDoS flood is saturating our load balancer. When do we engage the upstream provider?","gold":[]}
+{"qid":"N08","intent":"unrelated","query":"How many vacation days does a new hire get after six months?","gold":[]}
+{"qid":"N09","intent":"unrelated","query":"What is the procedure for approving an invoice from a new vendor?","gold":[]}
+{"qid":"N10","intent":"unrelated","query":"Best way to schedule the quarterly planning offsite for a distributed team","gold":[]}
+{"qid":"N11","intent":"unrelated","query":"Why is the office printer on the third floor jamming on double-sided pages?","gold":[]}
+{"qid":"N12","intent":"adjacent","query":"A laptop was lost on a train. How do we wipe it remotely and rotate the owner's passwords?","gold":[]}

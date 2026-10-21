@@ -23,6 +23,23 @@ class ToolCall:
     arguments: dict
 
 
+def returned_ids(payload: Any) -> dict:
+    """event_ids and runbook section_ids a tool payload carried. The run file keeps only a
+    400-char preview of a payload, which cannot answer "did the search ever surface the evidence?",
+    so the ids are lifted out here. Looks at the payload's own id fields and at lists of records."""
+    out = {"event_ids": [], "section_ids": []}
+    if not isinstance(payload, dict):
+        return out
+    rows = [payload] + [r for v in payload.values() if isinstance(v, list)
+                        for r in v if isinstance(r, dict)]
+    for r in rows:
+        if isinstance(r.get("event_id"), str):
+            out["event_ids"].append(r["event_id"])
+        if isinstance(r.get("section_id"), str):
+            out["section_ids"].append(r["section_id"])
+    return out
+
+
 @dataclass
 class ToolResult:
     call_id: str
@@ -31,6 +48,7 @@ class ToolResult:
     is_error: bool = False
     latency_ms: int = 0
     error_kind: Optional[str] = None  # unknown_tool | bad_arguments | tool_failed
+    rendered_chars: int = 0  # size of the text the model actually received (0 on runs before week 2.5)
 
 
 @dataclass
@@ -65,6 +83,8 @@ class StepRecord:
             "tool_results": [
                 {"call_id": r.call_id, "name": r.name, "is_error": r.is_error,
                  "error_kind": r.error_kind, "latency_ms": r.latency_ms,
+                 "rendered_chars": r.rendered_chars,
+                 **({} if r.is_error else returned_ids(r.payload)),
                  "payload_preview": json.dumps(r.payload, default=str)[:400]}
                 for r in self.tool_results
             ],

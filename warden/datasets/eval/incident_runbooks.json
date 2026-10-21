@@ -1,0 +1,23 @@
+{
+  "_note": "DRAFT labels, one author, not yet reviewed. Which runbooks a competent analyst would open for each dataset-v1 scenario, from the scenario name and alert summary only. RB-GEN-* apply to every incident and are not listed. Used by warden.evalkit.toolset to ask whether the agent consulted the right runbook. Review before relying on it.",
+  "credential_exfil_role_chain": ["RB-CONSOLE-001", "RB-STS-001"],
+  "benign_ci_deploy_burst": ["RB-EC2-001"],
+  "persistence_new_access_key": ["RB-IAM-002"],
+  "benign_travel_login": ["RB-CONSOLE-001"],
+  "crypto_mining_ec2": ["RB-EC2-001"],
+  "benign_backup_snapshots": ["RB-EBS-001"],
+  "s3_public_exposure": ["RB-S3-001"],
+  "benign_secrets_rotation": ["RB-SEC-001"],
+  "defense_evasion_cloudtrail": ["RB-LOG-001"],
+  "benign_analyst_bulk_read": ["RB-S3-002"],
+  "secrets_enumeration": ["RB-SEC-001"],
+  "benign_iac_policy_update": ["RB-IAM-001"],
+  "snapshot_share_external": ["RB-EBS-001"],
+  "benign_failed_logins_typo": ["RB-CONSOLE-002"],
+  "console_bruteforce_success": ["RB-CONSOLE-002"],
+  "credential_exfil_via_ci_role": ["RB-CICD-001", "RB-STS-001"],
+  "low_and_slow_exfil": ["RB-S3-002"],
+  "insider_scope_violation": ["RB-S3-003"],
+  "lambda_supply_chain": ["RB-CICD-001"],
+  "dormant_key_reactivation": ["RB-IAM-002", "RB-IAM-001"]
+}
