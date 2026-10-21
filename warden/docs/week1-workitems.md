@@ -5,10 +5,10 @@ a golden dataset you own.
 
 Ship criteria (all four, or the week is not done):
 
-- [ ] `make test` green, including the four contract tests that skip today
-- [ ] `python -m warden.loop.agent_loop --incident WRD-0001` produces a verdict
-- [ ] a tagged commit `w1-baseline` — week 6 benchmarks against it
-- [ ] `docs/week1-notes.md`: what you chose for each of the five stubs and why
+- [x] `make test` green, including the four contract tests that skip today
+- [x] `python -m warden.loop.agent_loop --incident WRD-0001` produces a verdict
+- [x] a tagged commit `w1-baseline` — week 6 benchmarks against it
+- [x] `docs/week1-notes.md`: what you chose for each of the five stubs and why
 
 ---
 

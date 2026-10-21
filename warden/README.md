@@ -61,7 +61,7 @@ src/warden/
   data/schema.py       Event / Alert / Incident / GroundTruth / PrincipalProfile
   data/scenarios.py    the 20 incident builders
   data/generator.py    deterministic generator
-  loop/agent_loop.py   the ReAct loop (5 stubs open — see docs/week1-workitems.md)
+  loop/agent_loop.py   the ReAct loop (all five week-1 stubs implemented; see docs/week1-notes.md)
   loop/tools.py        tool implementations + the in-process registry (kept as the test oracle)
   loop/transcript.py   message state, step and run records
   toolplane/           week 2: five FastMCP servers over stdio, plus the client the loop uses
@@ -73,11 +73,11 @@ src/warden/
     client.py            McpRegistry: same surface as ToolRegistry, so AgentLoop is unchanged
   rag/                 corpus, chunkers (fixed / heading), retrievers (bm25 / dense / hybrid), recall@k
   data/enrichment.py   deterministic generator for the threat-intel and asset tables
-  evalkit/             empty until week 4
+  evalkit/             offline eval kit: bootstrap stats, retrieval metrics, toolset/run-record metrics (docs/eval-criteria.md)
 datasets/v1/           generated; committed so results are reproducible (the tagged week-1 baseline)
 datasets/enrichment_v1/  threat intel + asset inventory; separate from v1 on purpose
 datasets/runbooks_v1/  16 runbooks + 48 labelled queries for the recall@k measurement
-docs/                  work items and design notes
+docs/                  work items, design notes, eval criteria
 ```
 
 ## Tool plane (week 2)
@@ -133,3 +133,8 @@ Version freeze: 2026-09-30 at `w1-baseline`. `anthropic==1.9.0` (Python 3.14.7);
 Week-2 freeze, same date: `fastmcp==4.0.10` (pulls `mcp==2.2.0`, which implements the 2026-07-28 spec),
 `rank-bm25==0.2.2`, `sentence-transformers==6.1.0`. RAG dependencies live in the `rag` extra so the loop
 and its tests never need torch: `pip install -e ".[rag]"`.
+
+Tags: `w1-baseline` (4cdffa2) is the frozen week-1 baseline and is **not moved**, but its `datasets/v1` predates the
+WRD-0006/0008 timing fix (generator 1.0.1, commit 14562bc, tag `w1-dataset-fix`). Only those two incidents' logs and
+alerts differ. Week-1 per-incident numbers for them are not comparable with later runs; the week-2 re-baseline
+(`runs/w2-*`) used the fixed data. `w2-toolplane` (6632e78) marks the week-2 freeze.
