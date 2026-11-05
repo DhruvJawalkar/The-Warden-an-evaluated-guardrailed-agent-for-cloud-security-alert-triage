@@ -3,7 +3,8 @@
     graph = build_graph(deps, checkpointer)
     graph.invoke(initial_state(deps.store, "WRD-0001"), {"configurable": {"thread_id": "WRD-0001"}})
 
-Thread id = incident id, so a restarted process resumes the right run.
+Thread id = `<experiment>:<incident>`, so a restarted process resumes the right run and two
+experiments never share state.
 """
 
 from __future__ import annotations
@@ -40,5 +41,9 @@ def initial_state(store, incident_id: str) -> dict:
     return {"incident_id": incident_id, "alert": store.alert(incident_id)}
 
 
-def thread_config(incident_id: str) -> dict:
-    return {"configurable": {"thread_id": incident_id}}
+def thread_config(incident_id: str, experiment: str = None) -> dict:
+    """With an experiment name the thread is `<experiment>:<incident>` (see threads.py); without
+    one it is the bare incident id, which only suits single-experiment tests."""
+    from warden.graph.threads import thread_id
+    return {"configurable": {"thread_id": thread_id(experiment, incident_id) if experiment
+                             else incident_id}}

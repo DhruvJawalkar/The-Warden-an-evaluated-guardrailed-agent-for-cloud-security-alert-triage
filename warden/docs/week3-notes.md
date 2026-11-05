@@ -133,11 +133,26 @@ Replaces the client-side approver callback. `report -> gate -> file_ticket`; `ga
 - With toolset `full` the model still sees `create_ticket` and any call is denied by the default approver
   (fail closed); the graph does not use `full`.
 
-**Open for item 7 (batch runs).** Every contain/escalate verdict and every unresolved run now pauses at the gate,
-so a batch runner needs an explicit, recorded non-human policy (e.g. auto-reject with `reviewer="eval-harness"`:
-no tickets filed, latency excludes human wait). Also namespace thread ids as `<experiment>:<incident>` in the
-runner; with thread id = incident id a second experiment on the same Postgres would hit `already_done` or a
-pending gate and silently not run.
+## Batch policy, thread ids and TTL (2026-11-05, decided with the user)
+
+`graph/batch.py` (`python -m warden.graph.batch run | pending | decide | purge`), `graph/threads.py`.
+
+- **Gate policy in a batch.** Held threads stay paused for a human: `--hold ID,ID` and `--hold-first N` (default 1:
+  the first N incidents to reach the gate with a proposed ticket). Every other gate is auto-rejected with
+  `reviewer="eval-harness"`, so no ticket is filed and the wait is not in the run's latency (`seconds_excl_gate_wait`
+  stops at the gate). Unresolved runs are auto-rejected unless named in `--hold`. The held cases are the manual
+  approve/edit path: `pending` shows the proposed ticket, `decide --action approve|reject|edit` resumes it.
+- **Re-running is safe.** A finished thread is never re-run (spend protection); a thread found paused stays paused
+  (never auto-rejected) unless `--auto-reject-pending`.
+- **Closed-benign / monitor verdicts still bypass the gate**, as agreed; revisit in week 5.
+- **Thread id = `<experiment>:<incident>`**, validated (`[A-Za-z0-9._-]`, no `:`). A new experiment name starts
+  clean; the same name resumes. Tested: two experiments on one saver do not share observations.
+- **TTL 6 h.** langgraph-checkpoint-postgres 3.2.0 has no TTL, so `purge_stale` removes threads whose newest
+  checkpoint (`checkpoint->>'ts'`) is older than the TTL, via the saver's own `delete_thread` (checkpoints, blobs and
+  writes). It runs at the start of every batch `run`, and as `batch purge [--experiment E] [--ttl-hours H]`. Tested
+  against Postgres at 5h50 (kept) and 6h05 (removed), with the experiment filter treated literally. A held gate older
+  than 6 h is purged too; decide within the window or re-run the experiment under a new name.
+- The `run` subcommand itself (real model) has not been executed; only the policy logic is tested, offline.
 
 ## Decisions (2026-11-05)
 
