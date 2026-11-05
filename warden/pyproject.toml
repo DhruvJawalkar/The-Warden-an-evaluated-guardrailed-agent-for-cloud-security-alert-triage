@@ -13,6 +13,13 @@ dependencies = [
 dev = ["pytest>=8.0", "ruff>=0.6"]
 # Runbook-RAG only. Kept out of the core install so the loop and its tests never need torch.
 rag = ["rank-bm25==0.2.2", "sentence-transformers==6.1.0"]
+# Week 3 orchestration. Frozen 2026-10-24; the transitive pins are listed in docs/week3-notes.md.
+graph = [
+    "langgraph==1.2.17",
+    "langgraph-checkpoint-postgres==3.2.0",
+    "psycopg[binary]==3.3.6",
+    "psycopg-pool==3.3.3",
+]
 
 [build-system]
 requires = ["setuptools>=68"]

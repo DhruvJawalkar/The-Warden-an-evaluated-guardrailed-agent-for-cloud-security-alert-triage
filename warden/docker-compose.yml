@@ -1,0 +1,23 @@
+# Local Postgres for the LangGraph checkpointer (week 3). Dev-only credentials, bound to localhost.
+#   docker compose up -d postgres
+#   WARDEN_PG_DSN=postgresql://warden:warden@localhost:5433/warden
+services:
+  postgres:
+    image: postgres:17.6
+    container_name: warden-postgres
+    environment:
+      POSTGRES_USER: warden
+      POSTGRES_PASSWORD: warden
+      POSTGRES_DB: warden
+    ports:
+      - "127.0.0.1:5433:5432"   # 5433 so it cannot collide with a local Postgres on 5432
+    volumes:
+      - warden-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U warden -d warden"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  warden-pgdata:
