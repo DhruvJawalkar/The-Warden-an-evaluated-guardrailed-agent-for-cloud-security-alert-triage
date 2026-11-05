@@ -6,7 +6,7 @@ with a human approval gate in front of the only write tool.
 Ship criteria (all of them, or the week is not done):
 
 - [ ] Graph (plan -> investigate -> verify -> report) runs all 20 incidents, one run each
-- [~] Resume proven at node granularity (kill test passes); a mid-investigate kill replays that node, see week3-notes. Decision pending
+- [x] Resume proven: process killed mid-run, restarted, finishes from the Postgres checkpoint (node granularity; a mid-investigate kill replays that node, accepted 2026-11-05, see week3-notes)
 - [x] `interrupt()` gate in front of `create_ticket`; approve / reject / edit paths tested
 - [x] Compaction summarises old turns; pairing-invariant test still green (behind a flag, default off)
 - [ ] `docs/week3-notes.md` (versions, results) and `docs/week3-design.md` (why a verifier node, what was rejected)
