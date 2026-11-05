@@ -259,3 +259,26 @@ def test_approved_ticket_lands_in_the_outbox_via_mcp(tmp_path, monkeypatch):
     rec = json.loads(files[0].read_text(encoding="utf-8"))
     assert rec["title"] == "Edited via gate" and rec["incident_id"] == INC
     assert rec["evidence_event_ids"] == [SEED]
+
+
+def test_without_a_checkpointer_the_gate_returns_pending_and_writes_nothing():
+    """No checkpoint means no way to resume, so the run just ends at the gate: still no write."""
+    writes = []
+    store = IncidentStore(ROOT)
+    deps = GraphDeps(store=store, client_factory=lambda: ScriptedClient(passing_attempt()),
+                     model="scripted", registry_factory=lambda inc, rs: build_registry(store, inc, rs),
+                     ticket_registry_factory=lambda inc, ap: FakeTicketRegistry(ap, writes))
+    out = build_graph(deps, None).invoke(initial_state(store, INC))
+    assert out["__interrupt__"] and out["disposition"] == "pending_decision"
+    assert writes == [] and out.get("filed_ticket") is None
+
+
+def test_disposition_values():
+    writes = []
+    graph, out = to_gate(passing_attempt(), writes)
+    assert out["disposition"] == "pending_decision"
+    assert resume(graph, {"action": "approve"})["disposition"] == "filed"
+    g2, deps = make([call("describe_principal", name="alice.chen"),
+                     call("get_events", event_ids=[SEED]),
+                     submit(action="close_benign", verdict="false_positive")], [])
+    assert g2.invoke(initial_state(deps.store, INC), thread_config(INC))["disposition"] == "none"

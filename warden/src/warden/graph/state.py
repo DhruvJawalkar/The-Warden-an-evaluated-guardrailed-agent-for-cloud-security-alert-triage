@@ -52,7 +52,7 @@ class WardenState(TypedDict, total=False):
     report: dict                                        # final outcome: status, verdict, gaps, cost
     human_decision: Optional[dict]                      # {"action": approve|reject|edit, "ticket", "reason", "reviewer"}
     filed_ticket: Optional[dict]                        # create_ticket's result, only after approve/edit
-    disposition: str                                    # none | filed | rejected | failed
+    disposition: str                                    # none (no ticket proposed) | pending_decision | approved (decision recorded, write pending) | filed | rejected | failed
     # accounting
     cost_usd: Annotated[float, operator.add]
     stop_cause: str

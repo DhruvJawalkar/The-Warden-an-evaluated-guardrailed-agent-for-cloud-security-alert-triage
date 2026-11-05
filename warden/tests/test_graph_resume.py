@@ -134,7 +134,7 @@ def test_pending_approval_survives_the_process_and_files_once(thread, tmp_path):
     os.environ["WARDEN_TICKET_DIR"] = str(outbox)
     try:
         first = finish(tid, ledger, action="escalate")
-        assert first["interrupted"] and first["disposition"] is None and not outbox.exists()
+        assert first["interrupted"] and first["disposition"] == "pending_decision" and not outbox.exists()
         assert finish(tid, ledger, action="escalate")["interrupted"]  # still pending, nothing re-run
         assert events(ledger).count("model") == 3 and events(ledger)[-1] == "pending"
 

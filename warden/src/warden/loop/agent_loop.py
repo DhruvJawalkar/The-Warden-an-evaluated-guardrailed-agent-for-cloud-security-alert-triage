@@ -504,8 +504,8 @@ class AgentLoop:
         # so any guess is a claim the agent did not earn: a guessed false_positive can close
         # a live intrusion, a guessed true_positive floods the queue and trains analysts to
         # ignore us. Unfinished is its own outcome: final_verdict=None and stop_cause=<which
-        # budget> let the eval count it as "unresolved", not as right or wrong. Week 3: route
-        # this to the human interrupt gate rather than deciding here.
+        # budget> let the eval count it as "unresolved", not as right or wrong. In the week-3 graph
+        # such a run is routed to the human interrupt gate (graph/gate.py proposal_for), not decided here.
         return None
 
 

@@ -150,6 +150,7 @@ def report_node(deps: GraphDeps):
         ticket = proposal_for(state)
         return {
             "ticket": ticket,
+            "disposition": "none" if ticket is None else "pending_decision",
             "report": {"status": status, "verdict": verdict,
                        "gaps": [g["detail"] for g in gaps],
                        "stop_cause": state.get("stop_cause", ""),

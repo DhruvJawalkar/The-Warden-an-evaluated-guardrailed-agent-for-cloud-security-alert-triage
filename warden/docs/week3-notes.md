@@ -114,7 +114,7 @@ Replaces the client-side approver callback. `report -> gate -> file_ticket`; `ga
 - **Fails closed.** `decide()` never raises and never defaults to approve. Non-dict, unknown action, extra
   fields, an `approve` carrying a ticket, edits to non-editable fields, or any invalid edited value (the whole
   reply, not just that field) become a recorded reject. 23 malformed shapes are tested. No timeout path
-  exists. With no checkpointer, `interrupt()` cannot pause and the run errors before any write.
+  exists. Compiled without a checkpointer the run returns at the gate with `pending_decision` and the interrupt payload; it cannot be resumed and nothing is written (tested).
 - **No reply is not a decision.** On langgraph 1.2.17, `Command(resume={})` re-pauses and
   `Command(resume=None)` raises `UnboundLocalError` inside the library. Both leave the gate open, write nothing,
   and a later valid reply works. Pinned by a test so an upgrade that changes it is noticed.
@@ -127,11 +127,17 @@ Replaces the client-side approver callback. `report -> gate -> file_ticket`; `ga
 - **Durable across processes (Postgres):** a run pauses at the gate and its process exits; a different process
   supplies the decision and the ticket is filed once with investigate not re-run; replaying the approval on the
   finished thread writes nothing more.
-- **Not covered:** a crash *between* the write and its checkpoint re-runs `file_ticket`; the ticket id is a hash
-  of (incident, title), so it overwrites rather than duplicates (idempotency from week 2), but an edited title
-  that changes between attempts cannot happen because the decision is checkpointed first.
+- **Crash between the write and its checkpoint:** `file_ticket` re-runs. The decision was checkpointed before it
+  ran, so the re-run files the same title, and the ticket id is a hash of (incident, title): it overwrites the
+  same outbox file rather than adding a second one (idempotency from week 2).
 - With toolset `full` the model still sees `create_ticket` and any call is denied by the default approver
   (fail closed); the graph does not use `full`.
+
+**Open for item 7 (batch runs).** Every contain/escalate verdict and every unresolved run now pauses at the gate,
+so a batch runner needs an explicit, recorded non-human policy (e.g. auto-reject with `reviewer="eval-harness"`:
+no tickets filed, latency excludes human wait). Also namespace thread ids as `<experiment>:<incident>` in the
+runner; with thread id = incident id a second experiment on the same Postgres would hit `already_done` or a
+pending gate and silently not run.
 
 ## Decisions (2026-11-05)
 
