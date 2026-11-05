@@ -7,7 +7,7 @@ Ship criteria (all of them, or the week is not done):
 
 - [ ] Graph (plan -> investigate -> verify -> report) runs all 20 incidents, one run each
 - [~] Resume proven at node granularity (kill test passes); a mid-investigate kill replays that node, see week3-notes. Decision pending
-- [ ] `interrupt()` gate in front of `create_ticket`; approve / reject / edit paths tested
+- [x] `interrupt()` gate in front of `create_ticket`; approve / reject / edit paths tested
 - [ ] Compaction summarises old turns; pairing-invariant test still green
 - [ ] `docs/week3-notes.md` (versions, results) and `docs/week3-design.md` (why a verifier node, what was rejected)
 - [ ] `make test` green; tagged commit `w3-graph`

@@ -81,11 +81,12 @@ def test_retry_ceiling_is_one():
     assert len(client.script) == 2, "the third attempt must never have been consumed"
 
 
-def test_no_verdict_is_unresolved_and_proposes_no_ticket():
+def test_no_verdict_is_unresolved_and_goes_to_a_human():
     graph, deps, _, _ = make([])
     out = run(graph, deps)
-    assert out["report"]["status"] == "unresolved" and out["ticket"] is None
-    assert out["verify_attempts"] == 1  # nothing to retry
+    assert out["report"]["status"] == "unresolved" and out["verify_attempts"] == 1  # nothing to retry
+    assert out["ticket"]["title"].startswith("UNRESOLVED") and out["__interrupt__"]
+    assert graph.get_state(thread_config(INC)).next == ("gate",)
 
 
 def test_escalation_is_a_proposal_not_a_write():
@@ -108,10 +109,10 @@ def test_state_is_checkpointed_and_serialisable():
     graph, deps, _, saver = make(passing_attempt())
     run(graph, deps)
     snap = graph.get_state(thread_config(INC))
-    assert snap.next == () and snap.values["report"]["status"] == "verified"
+    assert snap.next == ("gate",) and snap.values["report"]["status"] == "verified"
     json.dumps(snap.values, default=str)  # nothing live leaked into state
     history = list(graph.get_state_history(thread_config(INC)))
-    assert len(history) >= 5  # input, plan, investigate, verify, report
+    assert len(history) >= 6  # input, plan, investigate, verify, report, gate
 
 
 def test_spend_cap_stops_a_retry():

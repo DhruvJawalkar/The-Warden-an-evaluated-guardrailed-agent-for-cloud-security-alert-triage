@@ -6,8 +6,10 @@ appended to a ledger file, which survives the kill and is the independent record
 
     python scripts/graph_killtest_worker.py --thread T --ledger L [--model-delay 1.5] [--verify-delay 0]
 
-Start-or-resume: if the thread has no checkpoint, start from the alert; if it has a pending next
-node, continue from the checkpoint (invoke(None)); if it is finished, just print the report.
+Start-or-resume: if the thread has no checkpoint, start from the alert; if it is paused at the gate,
+resume it with --decision (or leave it pending); if it has another pending node, continue from the
+checkpoint (invoke(None)); if it is finished, just print the report. --action escalate makes the
+verdict propose a ticket, so the run stops at the gate; the default (monitor) runs to the end.
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ import sys
 import time
 
 from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.types import Command
 
 import warden.graph.build as build_mod
 from warden.graph.build import build_graph, initial_state
@@ -32,13 +35,13 @@ USAGE = Usage(1000, 200)  # fixed, so each model call costs the same and spend i
 SEED = "evt-WRD-0001-0001"
 
 
-def script() -> list:
+def script(action: str = "monitor") -> list:
     def call(i, tool, **args):
         return ModelResponse("", [ToolCall("t%d" % i, tool, args)], "tool_use", USAGE)
     return [call(1, "describe_principal", name="alice.chen"),
             call(2, "get_events", event_ids=[SEED]),
             call(3, "submit_verdict", verdict="true_positive", severity="high",
-                 recommended_action="escalate", evidence_event_ids=[SEED],
+                 recommended_action=action, evidence_event_ids=[SEED],
                  rationale="Console login without MFA from a new ASN, then role assumption. " * 2)]
 
 
@@ -52,6 +55,8 @@ def main() -> None:
     ap.add_argument("--dataset", default=os.environ.get("WARDEN_DATASET", "datasets/v1"))
     ap.add_argument("--model-delay", type=float, default=0.0)
     ap.add_argument("--verify-delay", type=float, default=0.0)
+    ap.add_argument("--action", default="monitor", help="recommended_action the scripted verdict submits")
+    ap.add_argument("--decision", help="JSON resume value for a pending gate")
     args = ap.parse_args()
 
     def log(ev: str) -> None:
@@ -88,7 +93,7 @@ def main() -> None:
         return verify_
     build_mod.verify_node = slow_verify
 
-    deps = GraphDeps(store=store, client_factory=lambda: LoggedClient(script()), model=MODEL,
+    deps = GraphDeps(store=store, client_factory=lambda: LoggedClient(script(args.action)), model=MODEL,
                      registry_factory=registry_factory)
     cfg = {"configurable": {"thread_id": args.thread}}
     with PostgresSaver.from_conn_string(args.dsn) as saver:
@@ -98,14 +103,24 @@ def main() -> None:
         if not snap.values:
             log("start")
             out = graph.invoke(initial_state(store, args.incident), cfg)
+        elif snap.next == ("gate",):
+            if args.decision:
+                log("decide")
+                out = graph.invoke(Command(resume=json.loads(args.decision)), cfg)
+            else:
+                log("pending")
+                out = snap.values
         elif snap.next:
             log("resume:" + ",".join(snap.next))
             out = graph.invoke(None, cfg)
         else:
             log("already_done")
             out = snap.values
+        interrupted = graph.get_state(cfg).next == ("gate",)
     print(json.dumps({"report": out["report"], "observations": len(out["observations"]),
-                      "cost_usd": out["cost_usd"], "verify_attempts": out["verify_attempts"]}))
+                      "cost_usd": out["cost_usd"], "verify_attempts": out["verify_attempts"],
+                      "interrupted": interrupted,
+                      "disposition": out.get("disposition"), "filed_ticket": out.get("filed_ticket")}))
     sys.stdout.flush()
 
 

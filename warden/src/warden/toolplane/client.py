@@ -46,6 +46,8 @@ TOOLSETS = {
     "w1": {"servers": ("log-search", "asset-graph"),
            "allow": ("search_logs", "get_events", "describe_principal")},
     "full": {"servers": tuple(ALL_SERVERS), "allow": None},
+    # Never offered to the model. The graph's filing step opens it after a human approval.
+    "ticket": {"servers": ("ticket-writer",), "allow": ("create_ticket",)},
 }
 DEFAULT_TOOLSET = "w1"
 
@@ -119,8 +121,9 @@ class McpRegistry:
         self.toolset = toolset
         self.servers = {n: ALL_SERVERS[n] for n in TOOLSETS[toolset]["servers"]}
         self.allow = TOOLSETS[toolset]["allow"]
-        # approver(tool_name, arguments) -> bool. None means "deny every write". Week 3 replaces
-        # this callback with a LangGraph interrupt.
+        # approver(tool_name, arguments) -> bool. None means "deny every write". In the graph, the
+        # approver is built only after a human interrupt() decision and accepts exactly the approved
+        # arguments (graph/nodes.py file_ticket); the model never gets one.
         self.approver = approver
         self.call_timeout = call_timeout
         self.startup_timeout = startup_timeout

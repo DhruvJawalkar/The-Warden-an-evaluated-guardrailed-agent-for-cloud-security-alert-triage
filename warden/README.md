@@ -110,7 +110,8 @@ Design points worth knowing:
 - **Toolsets are policy.** `w1` is exactly the week-1 tool surface, so moving to MCP changes one
   variable. `full` adds the week-2 tools and is an experiment of its own.
 - **Writes fail closed.** A tool that does not declare `readOnlyHint=true` cannot run without an
-  approver; the default approver denies. Week 3 turns that callback into a LangGraph interrupt.
+  approver; the default approver denies. In the week-3 graph the approver exists only after a human
+  `interrupt()` approve/edit, and accepts exactly the approved arguments.
 - **Parity is tested, not assumed.** `tests/test_toolplane.py` sends the same calls through the
   in-process registry and the MCP servers for all 20 incidents and asserts identical payloads and
   identical model-facing schemas.

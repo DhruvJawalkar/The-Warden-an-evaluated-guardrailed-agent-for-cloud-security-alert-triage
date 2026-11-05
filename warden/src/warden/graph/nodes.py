@@ -4,8 +4,9 @@ Each node is a function of the checkpointed state. Live objects (client, registr
 built inside the node from `GraphDeps` and thrown away at the end, so a process killed mid-node
 resumes by re-running that node from the last checkpoint. The week-2 AgentLoop is reused as is.
 
-The report node only *proposes* a ticket. Nothing in this module calls a write tool: the interrupt
-gate (work item 4) is the only path to create_ticket.
+The report node only *proposes* a ticket. The only path to create_ticket is gate -> file_ticket: the
+gate node pauses on `interrupt()` for a human, and file_ticket writes only what a valid approve/edit
+decision (checkpointed in state) names, through the client's approval policy.
 """
 
 from __future__ import annotations
@@ -13,8 +14,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
+from langgraph.types import interrupt
+
+from warden.graph.gate import decide, gate_payload, proposal_for
 from warden.graph.state import Observation, WardenState
-from warden.graph.verify import CONTAINING_ACTIONS, verify
+from warden.graph.verify import verify
 from warden.loop.agent_loop import AgentLoop, Budget, build_system_prompt
 from warden.loop.tools import IncidentStore
 from warden.loop.transcript import RunRecord, Transcript
@@ -34,6 +38,8 @@ class GraphDeps:
     max_usd: float = 0.50  # per incident, across every investigate attempt
     max_verify_retries: int = MAX_VERIFY_RETRIES
     run_dir: Optional[str] = None  # when set, each investigate attempt saves its RunRecord
+    # (incident_id, approver) -> a started registry holding create_ticket. None = real MCP ticket-writer.
+    ticket_registry_factory: Optional[Callable[[str, Callable], Any]] = None
 
 
 def plan_node(deps: GraphDeps):
@@ -141,17 +147,7 @@ def report_node(deps: GraphDeps):
         passed), unverified (checks still failing after the retry), unresolved (no verdict)."""
         verdict, gaps = state.get("verdict"), state.get("gaps") or []
         status = "unresolved" if not verdict else ("unverified" if gaps else "verified")
-        ticket = None
-        if verdict and verdict["recommended_action"] in CONTAINING_ACTIONS:
-            ticket = {
-                "incident_id": state["incident_id"],
-                "title": "%s: %s" % (state["alert"].get("rule_name", "alert"),
-                                     state["alert"].get("primary_principal")),
-                "severity": verdict["severity"],
-                "recommended_action": verdict["recommended_action"],
-                "body": verdict["rationale"],
-                "evidence_event_ids": verdict["evidence_event_ids"],
-            }
+        ticket = proposal_for(state)
         return {
             "ticket": ticket,
             "report": {"status": status, "verdict": verdict,
@@ -161,3 +157,57 @@ def report_node(deps: GraphDeps):
                        "cost_usd": round(state.get("cost_usd", 0.0), 6)},
         }
     return report
+
+
+def route_after_report(state: WardenState) -> str:
+    return "gate" if state.get("ticket") else "end"
+
+
+def gate_node(deps: GraphDeps):
+    def gate(state: WardenState) -> dict:
+        """Pause for a human. LangGraph re-runs this node from the top on resume, so everything
+        before interrupt() must be (and is) side-effect free; the write lives in file_ticket."""
+        proposed = state["ticket"]
+        raw = interrupt(gate_payload(state, proposed))
+        decision = decide(raw, proposed)
+        return {"human_decision": decision,
+                "disposition": "rejected" if decision["action"] == "reject" else "approved"}
+    return gate
+
+
+def route_after_gate(state: WardenState) -> str:
+    d = state.get("human_decision") or {}
+    # Fail closed: only an explicit, recorded approve/edit with a ticket reaches the write step.
+    return "file_ticket" if d.get("action") in ("approve", "edit") and d.get("ticket") else "end"
+
+
+def _open_ticket_registry(deps: GraphDeps, incident_id: str, approver: Callable):
+    if deps.ticket_registry_factory:
+        return deps.ticket_registry_factory(incident_id, approver)
+    from warden.toolplane.client import McpRegistry
+    return McpRegistry(incident_id, {}, dataset=deps.store.root, toolset="ticket",
+                       approver=approver).start()
+
+
+def file_ticket_node(deps: GraphDeps):
+    def file_ticket(state: WardenState) -> dict:
+        """Write the approved ticket. The client's approver accepts exactly the approved arguments
+        and nothing else, so a drifted payload is refused by the same policy layer as before. The
+        ticket id is a hash of (incident, title): re-running after a crash overwrites, never dups."""
+        d = state.get("human_decision") or {}
+        approved = d.get("ticket")
+        if d.get("action") not in ("approve", "edit") or not approved:
+            return {"disposition": "rejected"}
+        args = {k: approved[k] for k in ("title", "severity", "recommended_action", "body",
+                                         "evidence_event_ids")}
+        registry = _open_ticket_registry(
+            deps, state["incident_id"], lambda name, a: name == "create_ticket" and dict(a) == args)
+        try:
+            payload, _ = registry.dispatch("create_ticket", dict(args))
+        except Exception as exc:  # noqa: BLE001 - a failed write is recorded, never retried blind
+            return {"disposition": "failed", "filed_ticket": {"error": str(exc)[:300]}}
+        finally:
+            if hasattr(registry, "close"):
+                registry.close()
+        return {"disposition": "filed", "filed_ticket": payload}
+    return file_ticket

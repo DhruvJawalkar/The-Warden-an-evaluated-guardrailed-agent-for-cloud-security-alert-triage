@@ -3,8 +3,8 @@
     python -m warden.toolplane.ticket_writer     # stdio
 
 Gating lives in the CLIENT policy layer (McpRegistry.approver), not here: this tool declares
-readOnlyHint=False and the client refuses to run any non-read-only tool without approval. Week 3
-replaces the approver callback with a LangGraph interrupt.
+readOnlyHint=False and the client refuses to run any non-read-only tool without approval. In the
+graph that approval is a human interrupt() decision, checked by an exact-match approver.
 
 Stateless and idempotent: the ticket id is a hash of (incident_id, title), so a retry after a timeout
 overwrites the same file instead of filing a duplicate. Tickets go to an outbox directory, never to

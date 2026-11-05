@@ -124,3 +124,29 @@ def test_finished_thread_is_not_rerun(thread):
     res = finish(tid, ledger)
     assert events(ledger)[len(before):] == ["already_done"]
     assert res["report"]["status"] == "verified"
+
+
+def test_pending_approval_survives_the_process_and_files_once(thread, tmp_path):
+    """The run pauses at the gate and its process exits. A different process, later, supplies the
+    decision. Nothing is written before it, and a second resume of the finished thread writes nothing."""
+    tid, ledger = thread
+    outbox = tmp_path / "outbox"
+    os.environ["WARDEN_TICKET_DIR"] = str(outbox)
+    try:
+        first = finish(tid, ledger, action="escalate")
+        assert first["interrupted"] and first["disposition"] is None and not outbox.exists()
+        assert finish(tid, ledger, action="escalate")["interrupted"]  # still pending, nothing re-run
+        assert events(ledger).count("model") == 3 and events(ledger)[-1] == "pending"
+
+        decision = json.dumps({"action": "edit", "edits": {"title": "Approved elsewhere"}})
+        done = finish(tid, ledger, action="escalate", decision=decision)
+        assert done["disposition"] == "filed" and not done["interrupted"]
+        files = list(outbox.iterdir())
+        assert len(files) == 1 and json.loads(files[0].read_text(encoding="utf-8"))["title"] == "Approved elsewhere"
+        assert events(ledger).count("model") == 3, "investigate re-ran across the gate"
+
+        again = finish(tid, ledger, action="escalate", decision=decision)  # replayed approval
+        assert events(ledger)[-1] == "already_done" and again["disposition"] == "filed"
+        assert len(list(outbox.iterdir())) == 1
+    finally:
+        os.environ.pop("WARDEN_TICKET_DIR", None)

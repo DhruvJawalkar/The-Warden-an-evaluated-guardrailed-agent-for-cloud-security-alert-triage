@@ -98,6 +98,41 @@ risk: `create_ticket` runs only behind the gate (outside investigate) and is ide
 calls or double spend" must hold mid-investigate too, the investigate loop would need to checkpoint per step
 (a sub-graph with one model turn per superstep); that is a design choice, not done here.
 
+## Interrupt gate (2026-11-05)
+
+Replaces the client-side approver callback. `report -> gate -> file_ticket`; `gate.py` holds the pure parts
+(`proposal_for`, `gate_payload`, `decide`), `nodes.py` the two nodes. 145 tests, all passing with Postgres up.
+
+- **Two nodes on purpose.** LangGraph re-runs an interrupted node from its top on resume, so `gate` does only
+  `interrupt()` plus parsing (no side effects) and records the decision in checkpointed state. `file_ticket` is
+  the only caller of `create_ticket`. It opens the client's new one-tool `ticket` toolset (never offered to the
+  model) with an approver that accepts *exactly* the approved arguments; the client's read-only/approval policy
+  is still the enforcement point, and a tampered payload is refused (tested).
+- **Resume value:** `{"action": "approve"}`, `{"action": "reject", "reason"}`, or
+  `{"action": "edit", "edits": {title|severity|recommended_action|body}}`, each with an optional `reviewer`.
+  Evidence ids and incident id are not editable.
+- **Fails closed.** `decide()` never raises and never defaults to approve. Non-dict, unknown action, extra
+  fields, an `approve` carrying a ticket, edits to non-editable fields, or any invalid edited value (the whole
+  reply, not just that field) become a recorded reject. 23 malformed shapes are tested. No timeout path
+  exists. With no checkpointer, `interrupt()` cannot pause and the run errors before any write.
+- **No reply is not a decision.** On langgraph 1.2.17, `Command(resume={})` re-pauses and
+  `Command(resume=None)` raises `UnboundLocalError` inside the library. Both leave the gate open, write nothing,
+  and a later valid reply works. Pinned by a test so an upgrade that changes it is noticed.
+- **Budget exhaustion is now a human decision.** A run with no verdict (max_steps, max_usd, stall, ...) proposes
+  an `UNRESOLVED:` escalation ticket built from the alert alone (severity from `severity_reported`, evidence = the
+  alert's seed events, body states it is not an agent finding) and pauses at the gate. If the alert has no seed
+  events there is nothing `create_ticket` could file, so the run just ends unresolved.
+- **Only contain/escalate verdicts reach the gate.** `close_benign` and `monitor` write nothing and do not
+  pause. A closed-benign verdict is therefore not human-reviewed; that is a policy choice to revisit in week 5.
+- **Durable across processes (Postgres):** a run pauses at the gate and its process exits; a different process
+  supplies the decision and the ticket is filed once with investigate not re-run; replaying the approval on the
+  finished thread writes nothing more.
+- **Not covered:** a crash *between* the write and its checkpoint re-runs `file_ticket`; the ticket id is a hash
+  of (incident, title), so it overwrites rather than duplicates (idempotency from week 2), but an edited title
+  that changes between attempts cannot happen because the decision is checkpointed first.
+- With toolset `full` the model still sees `create_ticket` and any call is denied by the default approver
+  (fail closed); the graph does not use `full`.
+
 ## Decisions (2026-11-05)
 
 - Injection guardrail for the LLM verify pass is **regex/heuristic** for now. A classifier is a later
