@@ -48,7 +48,8 @@ class WardenState(TypedDict, total=False):
     verify_attempts: Annotated[int, keep_max]
     llm_verify_calls: Annotated[int, keep_max]          # hard-capped at 1 per incident
     # report / gate
-    ticket: Optional[dict]
+    ticket: Optional[dict]                              # a proposal only; the gate decides if it is filed
+    report: dict                                        # final outcome: status, verdict, gaps, cost
     human_decision: Optional[dict]                      # {"action": approve|reject|edit, ...}
     # accounting
     cost_usd: Annotated[float, operator.add]

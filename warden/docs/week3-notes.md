@@ -50,6 +50,27 @@ that also covers the graph path; the resource pivot and unexamined-principal che
 behaviour (the WRD-0019 / WRD-0017 fix). 90 tests pass (11 new). Not yet measured on the LLM: whether
 it moves WRD-0019 / WRD-0017 is a week-3 result, not a claim.
 
+## Skeleton graph (built 2026-11-05)
+
+`graph/nodes.py` + `graph/build.py`: `plan -> investigate -> verify -> (investigate | report)`, thread id =
+incident id. 98 tests pass (8 new, `tests/test_graph.py`, offline: ScriptedClient + in-process registry +
+MemorySaver).
+
+- **plan** is deterministic (four generic questions from the alert, no model call). It does add a
+  "Questions to answer" block to the user message, so it is a prompt change versus week 2. Keep that in mind
+  when comparing against the week-2 MCP arm: it is a second variable alongside the graph itself.
+- **investigate** builds a fresh `AgentLoop`, registry and transcript per attempt and discards them. The
+  checkpoint holds only observations, verdict, gaps and spend. A retry gets the gap instructions and the
+  previous verdict in its first message and is told to re-fetch cited events (a fresh registry's `fetched`
+  set is empty). A retry that submits nothing keeps the earlier proposed verdict.
+- **Spend cap** is per incident across attempts: each attempt gets `max_usd - cost so far`.
+- **verify** runs the deterministic checks. Retry ceiling 1 (`attempts <= 1` routes back).
+- **report** has three statuses: `verified`, `unverified` (checks still failing after the retry),
+  `unresolved` (no verdict). It only *proposes* a ticket for contain/escalate. No code path in the graph calls
+  `create_ticket`; the interrupt gate (item 4) will be the only one.
+- Not built yet: the regex injection guardrail and the single LLM verify call, the Postgres saver, the gate,
+  summarisation compaction, the enrich sub-graph. Not run against the real model.
+
 ## Decisions (2026-11-05)
 
 - Injection guardrail for the LLM verify pass is **regex/heuristic** for now. A classifier is a later
