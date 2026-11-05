@@ -37,6 +37,7 @@ class GraphDeps:
     max_steps: int = 25
     max_usd: float = 0.50  # per incident, across every investigate attempt
     max_verify_retries: int = MAX_VERIFY_RETRIES
+    compaction: str = "elide"  # "summarise" turns on summarising compaction (week-6 ablation flag)
     run_dir: Optional[str] = None  # when set, each investigate attempt saves its RunRecord
     # (incident_id, approver) -> a started registry holding create_ticket. None = real MCP ticket-writer.
     ticket_registry_factory: Optional[Callable[[str, Callable], Any]] = None
@@ -100,7 +101,8 @@ def investigate_node(deps: GraphDeps):
             run = RunRecord.new(state["incident_id"], deps.model)
             run.prompt_version = deps.prompt_version
             loop = AgentLoop(deps.client_factory(), registry, transcript,
-                             Budget(max_steps=deps.max_steps, max_usd=remaining), run, run_state)
+                             Budget(max_steps=deps.max_steps, max_usd=remaining), run, run_state,
+                             compaction=deps.compaction)
             try:
                 loop.run_until_done()
             finally:

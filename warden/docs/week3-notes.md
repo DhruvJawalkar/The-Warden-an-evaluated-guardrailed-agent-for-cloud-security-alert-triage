@@ -154,6 +154,35 @@ Replaces the client-side approver callback. `report -> gate -> file_ticket`; `ga
   than 6 h is purged too; decide within the window or re-run the experiment under a new name.
 - The `run` subcommand itself (real model) has not been executed; only the policy logic is tested, offline.
 
+## Compaction by summarisation (2026-11-05)
+
+Flag: `AgentLoop(compaction="elide" | "summarise")`, default `"elide"` (the week-1 behaviour, unchanged).
+`--compaction` on the loop CLI and the batch runner, `GraphDeps.compaction` in the graph; the mode is recorded on
+every `RunRecord` (`"compaction"`) so week 6 can ablate on/off. Same trigger as before (80% of `max_context_tokens`).
+
+- **Mechanism.** The oldest complete assistant/tool_result pairs are deleted and replaced by one text block appended
+  to the first user message. The cut is always at an odd index, so the retained tail starts with an assistant
+  message and each dropped `tool_use` goes with its `tool_result`: pairing and role alternation hold by
+  construction, not by repair. The block is rebuilt from a cumulative ledger on every compaction, so there is only
+  ever one, earlier lines are kept, and nothing is re-summarised (no drift). If the tail alone is still over the limit,
+  the elision pass runs on it. A single result bigger than the whole limit is still `Budget`'s "max_context" case.
+- **Deterministic, built from the tool-call records, no model call.** One line per dropped call, in order: searches
+  keep their arguments, "N of M matched", principals seen and the first 4 event ids (`+K more, re-run to list`);
+  `get_events` keeps its principals; `describe_principal` and other tools keep a 200-char excerpt (so the baseline
+  is not lost, which the old elision did lose); errors keep their message; the model's own note for the step is
+  attached to that step's first call. A final line lists **every fetched event id verbatim and uncapped**: those are
+  the only ids `submit_verdict` accepts, so they are the ones that must survive.
+- **Sample (8 pairs, tool results of ~3k chars):** 4,029 -> 1,047 estimated tokens, 17 -> 3 messages.
+- **Rejected for now: summarising with a (cheap) model call.** It adds cost and latency per compaction, makes the
+  ablation depend on a second model, and can paraphrase an event id; a deterministic summary can be diffed and
+  unit-tested. Revisit only if the week-6 ablation shows the deterministic one loses something the model needed.
+- **Known limits, unmeasured.** Search ids beyond the first 4 are dropped (only fetched ids are citable, and a search
+  can be re-run), so a suspicious unfetched id seen in a dropped search is not carried. Whether summarised runs
+  investigate as well as elided ones has not been run on the model; that is a week-6 row, not a claim here.
+- Tests (`tests/test_compaction.py`, 11): pairing and alternation in both modes; the default is still elision; ids
+  survive verbatim; one block after a second compaction with earlier lines intact; chronological order; errors and
+  baselines kept; below-threshold is a no-op; a scripted full run compacts mid-run and still submits a verdict.
+
 ## Decisions (2026-11-05)
 
 - Injection guardrail for the LLM verify pass is **regex/heuristic** for now. A classifier is a later

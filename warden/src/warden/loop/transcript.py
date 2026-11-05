@@ -110,6 +110,7 @@ class RunRecord:
     finished_at: float = 0.0
     prompt_version: str = ""
     tool_plane: str = ""  # "inproc" | "mcp"; empty on runs recorded before week 2
+    compaction: str = ""  # "elide" | "summarise"; empty on runs recorded before week 3
 
     @classmethod
     def new(cls, incident_id: str, model: str) -> "RunRecord":
@@ -143,6 +144,7 @@ class RunRecord:
             "stop_cause": self.stop_cause,
             "prompt_version": self.prompt_version,
             "tool_plane": self.tool_plane,
+            "compaction": self.compaction,
             "final_verdict": self.final_verdict,
             "totals": {"usage": asdict(u), "cost_usd": round(self.total_cost_usd, 6)},
             "trajectory": self.tool_call_names(),

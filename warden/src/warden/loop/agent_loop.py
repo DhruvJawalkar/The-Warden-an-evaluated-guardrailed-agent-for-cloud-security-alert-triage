@@ -204,6 +204,19 @@ def price(model: str, usage: Usage) -> float:
 
 # --- the loop ----------------------------------------------------------------
 
+def _squash(text: str, limit: int) -> str:
+    text = " ".join(str(text).split())
+    return text if len(text) <= limit else text[:limit - 1] + "…"
+
+
+def _principals(text: str) -> list:
+    """Principal names in a rendered search table (4th column) or full event records."""
+    names = [row.split(" | ")[3] for row in text.splitlines()
+             if row.startswith("evt-") and row.count(" | ") >= 7]
+    names += re.findall(r'"principal_name":"([^"]+)"', text)
+    return list(dict.fromkeys(names))[:6]
+
+
 def _cap(text: str, limit: int) -> str:
     if len(text) <= limit:
         return text
@@ -214,9 +227,19 @@ class NotImplementedStub(NotImplementedError):
     pass
 
 
+COMPACTION_MODES = ("elide", "summarise")
+SUMMARY_HEAD = "[Earlier investigation steps were summarised to save context."
+_EVT = re.compile(r"evt-[\w-]+")
+
+
 class AgentLoop:
     def __init__(self, client, registry: ToolRegistry, transcript: Transcript,
-                 budget: Budget, run: RunRecord, run_state: dict):
+                 budget: Budget, run: RunRecord, run_state: dict, compaction: str = "elide"):
+        if compaction not in COMPACTION_MODES:
+            raise ValueError("compaction must be one of %s, got %r" % (COMPACTION_MODES, compaction))
+        self.compaction = compaction  # "elide" (week 1, default) or "summarise" (week 3, opt-in)
+        self.run_dropped: list = []   # summarise mode: ledger of calls whose messages were dropped
+        run.compaction = compaction
         self.client = client
         self.registry = registry
         self.transcript = transcript
@@ -454,6 +477,11 @@ class AgentLoop:
         limit = int(self.budget.max_context_tokens * self.COMPACT_AT)
         if self.transcript.estimated_tokens() <= limit:
             return False
+        if self.compaction == "summarise":
+            return self._compact_summarise(limit)
+        return self._compact_elide(limit)
+
+    def _compact_elide(self, limit: int) -> bool:
         msgs = self.transcript.messages
         names = {}  # tool_use id -> (name, args) so stubs stay informative
         for m in msgs:
@@ -483,6 +511,97 @@ class AgentLoop:
 
     COMPACT_AT = 0.8
     MAX_CONSECUTIVE_ERRORS = 5
+
+    # --- summarising compaction (opt-in; see docs/week3-notes.md) ---------------------
+
+    SUMMARY_IDS_PER_SEARCH = 4     # ids listed per dropped search (only fetched ids are citable); fetched ids are never capped
+    SUMMARY_EXCERPT = 200          # chars kept of a baseline / other result
+    SUMMARY_NOTE = 160             # chars kept of the model's own note on a dropped step
+
+    def _compact_summarise(self, limit: int) -> bool:
+        """Replace the oldest complete assistant/tool_result pairs with one summary block in the first
+        user message. The cut is always at an odd index, so the retained tail starts with an
+        assistant message and every dropped tool_use is dropped together with its tool_result:
+        pairing and role alternation hold by construction. Event ids from fetched events survive
+        verbatim. If the tail alone is still too big, fall back to eliding its tool results."""
+        msgs, changed = self.transcript.messages, False
+        for keep in (8, 4, 2):
+            cut = len(msgs) - keep
+            if cut % 2 == 0:
+                cut -= 1
+            if cut <= 1:
+                continue
+            self.run_dropped.extend(self._ledger(msgs[1:cut]))
+            del msgs[1:cut]
+            self._write_summary()
+            changed = True
+            if self.transcript.estimated_tokens() <= limit:
+                return True
+        if self.transcript.estimated_tokens() > limit:
+            changed = self._compact_elide(limit) or changed
+        return changed
+
+    def _ledger(self, span: list) -> list:
+        """One entry per dropped tool call, in order. The model's note on a step is attached to that
+        step's first call, so the summary reads as a chronology."""
+        uses, out, note = {}, [], ""
+        for m in span:
+            if m["role"] == "assistant":
+                note = " ".join(b["text"].strip() for b in m["content"]
+                                if b.get("type") == "text" and b.get("text", "").strip())
+                for b in m["content"]:
+                    if b.get("type") == "tool_use":
+                        uses[b["id"]] = (b["name"], b.get("input", {}))
+                continue
+            first = True
+            for b in m["content"]:
+                if b.get("type") != "tool_result":
+                    continue
+                name, args = uses.get(b["tool_use_id"], ("?", {}))
+                text = b.get("content") if isinstance(b.get("content"), str) else json.dumps(b.get("content"))
+                entry = self._ledger_entry(name, args, text, bool(b.get("is_error")))
+                if first and note:
+                    entry["line"] += " | note: " + _squash(note, self.SUMMARY_NOTE)
+                first = False
+                out.append(entry)
+        return out
+
+    def _ledger_entry(self, name: str, args: dict, text: str, is_error: bool) -> dict:
+        ids = list(dict.fromkeys(_EVT.findall(text)))
+        shown = json.dumps(args, sort_keys=True, separators=(",", ":"), default=str)
+        if is_error:
+            return {"fetched": [],
+                    "line": "%s %s: ERROR %s" % (name, _squash(shown, 120), _squash(text, 100))}
+        if name == "get_events":
+            who = _principals(text)
+            return {"fetched": ids,
+                    "line": "get_events: fetched %d record(s)%s" % (
+                        len(ids), (", principals " + ", ".join(who)) if who else "")}
+        if name == "search_logs":
+            m = re.search(r"total_matched=(\d+) returned=(\d+)", text)
+            who = _principals(text)
+            more = len(ids) - self.SUMMARY_IDS_PER_SEARCH
+            return {"fetched": [],
+                    "line": "search_logs %s: %s%s; ids: %s%s" % (
+                        _squash(shown, 140),
+                        ("%s of %s matched" % (m.group(2), m.group(1))) if m else "no rows parsed",
+                        ("; principals " + ", ".join(who)) if who else "",
+                        ", ".join(ids[:self.SUMMARY_IDS_PER_SEARCH]) or "none",
+                        (" (+%d more, re-run to list)" % more) if more > 0 else "")}
+        return {"fetched": [],
+                "line": "%s %s: %s" % (name, _squash(shown, 100), _squash(text, self.SUMMARY_EXCERPT))}
+
+    def _write_summary(self) -> None:
+        first = self.transcript.messages[0]["content"]
+        first[:] = [b for b in first if not (b.get("type") == "text"
+                                              and b.get("text", "").startswith(SUMMARY_HEAD))]
+        fetched = list(dict.fromkeys(i for e in self.run_dropped for i in e["fetched"]))
+        lines = [SUMMARY_HEAD + " Tool results were dropped; re-run a call if you need its detail. "
+                 "Event ids below are verbatim.]"]
+        lines += ["- " + e["line"] for e in self.run_dropped]
+        if fetched:
+            lines.append("Event ids you fetched earlier (still citable): " + ", ".join(fetched))
+        first.append({"type": "text", "text": "\n".join(lines)})
 
     def on_budget_exhausted(self, which: str) -> Optional[dict]:
         """Budget ran out with no verdict. Return a forced verdict, or None.
@@ -609,6 +728,8 @@ def main() -> None:
                     help="tool plane: FastMCP servers over stdio (week 2) or the in-process oracle")
     ap.add_argument("--toolset", choices=("w1", "full"), default="w1",
                     help="tools offered to the model. w1 = the week-1 surface; full adds week-2 tools")
+    ap.add_argument("--compaction", choices=COMPACTION_MODES, default="elide",
+                    help="elide old tool results (week 1, default) or summarise old turns (week 3)")
     ap.add_argument("--run-dir", default="runs")
     ap.add_argument("--dry-run", action="store_true", help="ScriptedClient, no API calls")
     ap.add_argument("--check", action="store_true", help="report unimplemented stubs")
@@ -640,7 +761,8 @@ def main() -> None:
         run.prompt_version = args.prompt
         run.tool_plane = args.tools
         loop = AgentLoop(client, registry, transcript,
-                         Budget(max_steps=args.max_steps, max_usd=args.max_usd), run, run_state)
+                         Budget(max_steps=args.max_steps, max_usd=args.max_usd), run, run_state,
+                         compaction=args.compaction)
 
         try:
             loop.run_until_done()

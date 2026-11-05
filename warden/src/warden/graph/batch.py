@@ -128,7 +128,7 @@ def _build(args):
     store = IncidentStore(args.dataset)
     deps = GraphDeps(
         store=store, client_factory=lambda: AnthropicClient(args.model), model=args.model,
-        prompt_version=args.prompt, max_steps=args.max_steps, max_usd=args.max_usd,
+        prompt_version=args.prompt, compaction=args.compaction, max_steps=args.max_steps, max_usd=args.max_usd,
         registry_factory=lambda inc, rs: open_registry("mcp", store, inc, rs, dataset=args.dataset,
                                                        toolset="w1"),
         run_dir=os.path.join(args.run_dir, args.experiment))
@@ -149,6 +149,7 @@ def main(argv=None) -> int:
     ap.add_argument("--dataset", default=os.environ.get("WARDEN_DATASET", "datasets/v1"))
     ap.add_argument("--model", default=os.environ.get("WARDEN_MODEL", "claude-haiku-4-5-20251001"))
     ap.add_argument("--prompt", default="v2")
+    ap.add_argument("--compaction", choices=("elide", "summarise"), default="elide")
     ap.add_argument("--max-steps", type=int, default=25)
     ap.add_argument("--max-usd", type=float, default=0.50)
     ap.add_argument("--run-dir", default="runs")
