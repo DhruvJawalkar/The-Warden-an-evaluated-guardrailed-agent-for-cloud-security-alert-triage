@@ -21,7 +21,9 @@ Installed with `pip install -e ".[graph]"` equivalents into the existing venv (P
 
 Direct pins are in `pyproject.toml` under the `graph` extra. Release notes are read on Fridays only.
 
-DSN: `postgresql://warden:warden@localhost:5433/warden` (dev-only credentials, bound to 127.0.0.1).
+DSN: `postgresql://warden:warden@127.0.0.1:5433/warden` (dev-only credentials, bound to 127.0.0.1).
+Use the literal `127.0.0.1`, not `localhost`: on this Windows host `localhost` made psycopg wait out the whole
+20 s connect timeout before falling back (measured), and every connection pays it.
 `docker compose up -d --wait postgres`. Smoke test: `PostgresSaver.setup()` created its tables and returned.
 
 ## Decisions taken at kickoff
@@ -70,6 +72,31 @@ MemorySaver).
   `create_ticket`; the interrupt gate (item 4) will be the only one.
 - Not built yet: the regex injection guardrail and the single LLM verify call, the Postgres saver, the gate,
   summarisation compaction, the enrich sub-graph. Not run against the real model.
+
+## Postgres checkpointer and the kill test (2026-11-05)
+
+`PostgresSaver` (sync; the async saver needs the selector event loop policy on Windows, so it is avoided).
+`scripts/graph_killtest_worker.py` runs the graph in its own process with a slow scripted model and appends every
+model call, tool call and verify entry to a ledger file; `tests/test_graph_resume.py` kills it with
+`Popen.kill()` (TerminateProcess, same as `taskkill /F`), restarts it on the same thread id, and compares the
+ledger with the final state. No API calls. 101 tests pass with Postgres up; the 3 resume tests skip without it.
+
+| kill point | what ran after restart | state after | real calls wasted |
+|---|---|---|---|
+| between nodes (inside verify) | resumed at `verify`; investigate NOT re-run | 3 observations, 1 verify attempt, cost = 3 calls | 0 |
+| inside investigate (after 2 model calls) | resumed at `investigate`; node replayed from its start | 3 observations, no duplicates, cost = 3 calls | 2 model calls + 1 read-only tool call |
+| thread already finished | nothing re-run | report returned from the checkpoint | 0 |
+
+A manual `taskkill /F /PID` run showed the same ledger: `start,model,tool:describe_principal,model | resume:investigate,
+model,tool:describe_principal,model,tool:get_events,model,tool:submit_verdict | verify_enter`.
+
+**What this does and does not prove.** A node is the unit of atomicity. State never doubles up and the checkpointed
+spend never counts the killed attempt, but a kill mid-investigate loses that attempt's work: the real API spend for
+the killed calls is gone from `cost_usd` (it is real money, just unrecorded) and its read-only tool calls run twice.
+The loss is bounded by one investigate attempt (about $0.04 at week-2 rates). The write tool is not exposed to this
+risk: `create_ticket` runs only behind the gate (outside investigate) and is idempotent. If "no duplicated tool
+calls or double spend" must hold mid-investigate too, the investigate loop would need to checkpoint per step
+(a sub-graph with one model turn per superstep); that is a design choice, not done here.
 
 ## Decisions (2026-11-05)
 

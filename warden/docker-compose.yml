@@ -1,6 +1,6 @@
 # Local Postgres for the LangGraph checkpointer (week 3). Dev-only credentials, bound to localhost.
 #   docker compose up -d postgres
-#   WARDEN_PG_DSN=postgresql://warden:warden@localhost:5433/warden
+#   WARDEN_PG_DSN=postgresql://warden:warden@127.0.0.1:5433/warden
 services:
   postgres:
     image: postgres:17.6
